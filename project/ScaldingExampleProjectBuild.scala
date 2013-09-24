@@ -31,10 +31,12 @@ object Camus2KafkaProjectBuild extends Build {
       libraryDependencies ++= Seq(
         Libraries.scaldingCore,
         Libraries.hadoopCore,
+        Libraries.hadoopHdfs,
         Libraries.specs2,
         Libraries.kafkaCore,
         Libraries.camusEtlKafka,
-        Libraries.camusApi
+        Libraries.camusApi,
+        Libraries.commonsDaemon
       )
     )
 }
