@@ -39,5 +39,6 @@ object Camus2KafkaProjectBuild extends Build {
         Libraries.commonsDaemon
       )
     )
+  .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)
 }
 

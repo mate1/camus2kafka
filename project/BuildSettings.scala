@@ -43,9 +43,12 @@ object BuildSettings {
         "minlog-1.2.jar", // Otherwise causes conflicts with Kyro (which bundles it)
         "janino-2.5.16.jar", // Janino includes a broken signature, and is not needed anyway
         "commons-beanutils-core-1.8.0.jar", // Clash with each other and with commons-collections
-        "commons-beanutils-1.7.0.jar",      // "
-        "hadoop-core-0.20.2.jar", // Provided by Amazon EMR. Delete this line if you're not on EMR
-        "hadoop-tools-0.20.2.jar" // "
+        "commons-beanutils-1.7.0.jar",
+        "avro-1.3.2.jar",
+        "servlet-api-2.5-6.1.14.jar",
+        "servlet-api-2.5-20081211.jar",
+        "jsp-api-2.0.jar",
+        "asm-3.2.jar"
       ) 
       cp filter { jar => excludes(jar.data.getName) }
     },
@@ -53,6 +56,12 @@ object BuildSettings {
     mergeStrategy in assembly <<= (mergeStrategy in assembly) {
       (old) => {
         case "project.clj" => MergeStrategy.discard // Leiningen build files
+        case "javax/servlet/SingleThreadModel.class" => MergeStrategy.first
+        case old if old.startsWith("org/objenesis/") => MergeStrategy.first
+        case old if old.startsWith("org/apache/commons/") => MergeStrategy.first
+        case old if old.startsWith("org/hamcrest/") => MergeStrategy.first
+        case old if old.startsWith("META-INF/maven/commons-io/") => MergeStrategy.first
+        case old if old.endsWith("package-info.class") => MergeStrategy.first
         case x => old(x)
       }
     }

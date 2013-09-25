@@ -27,7 +27,7 @@ object Dependencies {
     val hadoopHdfs    = "2.0.0-cdh4.2.0"
     val specs2        = "1.12.3" // -> "1.13" when we bump to Scala 2.10.0
     val kafka         = "0.7.2"
-    val camus         = "0.1.0-SNAPSHOT"
+    val camus         = "0.1.0-kafka0.7.2-scala2.9.2-SNAPSHOT"
     val commonsDaemon = "1.0.5"
   }
 
