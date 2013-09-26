@@ -29,14 +29,12 @@ object Camus2KafkaProjectBuild extends Build {
     .settings(buildSettings: _*)
     .settings(
       libraryDependencies ++= Seq(
-        Libraries.scaldingCore,
         Libraries.hadoopCore,
         Libraries.hadoopHdfs,
         Libraries.specs2,
         Libraries.kafkaCore,
         Libraries.camusEtlKafka,
-        Libraries.camusApi,
-        Libraries.commonsDaemon
+        Libraries.camusApi
       )
     )
   .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)

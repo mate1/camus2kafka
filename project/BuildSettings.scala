@@ -48,7 +48,8 @@ object BuildSettings {
         "servlet-api-2.5-6.1.14.jar",
         "servlet-api-2.5-20081211.jar",
         "jsp-api-2.0.jar",
-        "asm-3.2.jar"
+        "asm-3.2.jar",
+        "netty-3.2.6.Final.jar"
       ) 
       cp filter { jar => excludes(jar.data.getName) }
     },
