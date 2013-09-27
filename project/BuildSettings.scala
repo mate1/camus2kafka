@@ -56,9 +56,6 @@ object BuildSettings {
     
     mergeStrategy in assembly <<= (mergeStrategy in assembly) {
       (old) => {
-        case "project.clj" => MergeStrategy.discard // Leiningen build files
-        case "javax/servlet/SingleThreadModel.class" => MergeStrategy.first
-        case old if old.startsWith("org/objenesis/") => MergeStrategy.first
         case old if old.startsWith("org/apache/commons/") => MergeStrategy.first
         case old if old.startsWith("org/hamcrest/") => MergeStrategy.first
         case old if old.startsWith("META-INF/maven/commons-io/") => MergeStrategy.first

@@ -34,6 +34,7 @@ object Camus2KafkaProjectBuild extends Build {
         Libraries.specs2,
         Libraries.kafkaCore,
         Libraries.camusEtlKafka,
+        Libraries.avro,
         Libraries.camusApi
       )
     )

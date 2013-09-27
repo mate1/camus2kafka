@@ -28,6 +28,7 @@ object Dependencies {
     val specs2        = "1.12.3" // -> "1.13" when we bump to Scala 2.10.0
     val kafka         = "0.7.2"
     val camus         = "0.1.0-kafka0.7.2-scala2.9.2-SNAPSHOT"
+    val avro          = "1.6.1"
   }
 
   object Libraries {
@@ -39,6 +40,7 @@ object Dependencies {
 
     // Scala (test only)
     val specs2       = "org.specs2"                 %% "specs2"               % V.specs2       % "test"
+    val avro         = "org.apache.avro"             %  "avro"                % V.avro
   }
 }
 
