@@ -58,7 +58,7 @@ object BuildSettings {
       (old) => {
         case old if old.startsWith("org/apache/commons/") => MergeStrategy.first
         case old if old.startsWith("org/hamcrest/") => MergeStrategy.first
-        case old if old.startsWith("META-INF/maven/commons-io/") => MergeStrategy.first
+        case old if old.startsWith("META-INF/maven/") => MergeStrategy.first
         case old if old.endsWith("package-info.class") => MergeStrategy.first
         case x => old(x)
       }

@@ -20,7 +20,7 @@ class TokenizerMapper extends Mapper[Object,Text,Text,IntWritable] {
   val one = new IntWritable(1)
   val word = new Text
 
-  override def map(key:Object, value:Text, context:Mapper[Object,Text,Text,IntWritable]#Context) = {
+  override def map(key:Object, value:Text, context : Mapper[Object,Text,Text,IntWritable]#Context) = {
     for (t <-  value.toString().split("\\s")) {
       word.set(t)
       context.write(word, one)
