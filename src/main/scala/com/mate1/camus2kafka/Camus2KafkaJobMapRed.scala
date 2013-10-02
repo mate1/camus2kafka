@@ -67,13 +67,16 @@ class Camus2KafkaJobMapRed extends Configured with Tool with Callback {
 
     jobConf.setJobName("Camus to Kafka")
     jobConf.setInputFormat(classOf[AvroInputFormat[GenericRecord]])
+    jobConf.setMapperClass(classOf[AvroReaderMapperMapRed])
+    jobConf.setMapOutputKeyClass(classOf[AvroKey[Long]])
+    jobConf.setMapOutputValueClass(classOf[AvroValue[GenericRecord]])
 
-    AvroJob.setMapOutputSchema(jobConf, AvroPair.getPairSchema(Schema.create(Schema.Type.LONG), SCHEMA))
-    AvroJob.setInputSchema(jobConf, SCHEMA)
+    //AvroJob.setMapOutputSchema(jobConf, AvroPair.getPairSchema(Schema.create(Schema.Type.LONG), SCHEMA))
+    //AvroJob.setInputSchema(jobConf, SCHEMA)
     AvroJob.setOutputSchema(jobConf, SCHEMA)
-    AvroJob.setMapperClass(jobConf, classOf[AvroReaderMapperMapRed])
+    //AvroJob.setMapperClass(jobConf, classOf[AvroReaderMapperMapRed])
     AvroJob.setReducerClass(jobConf, classOf[SendToKafkaReducerMapRed])
-    AvroJob.setReflect(jobConf)
+    //AvroJob.setReflect(jobConf)
 
     FileInputFormat.setInputPaths(jobConf, new Path(args(0)))
     FileOutputFormat.setOutputPath(jobConf, new Path(args(1)))
@@ -102,12 +105,23 @@ class Camus2KafkaJobMapRed extends Configured with Tool with Callback {
   }
 }
 
-class AvroReaderMapperMapRed extends AvroMapper[GenericRecord, AvroPair[Long, GenericRecord]]{
+class AvroReaderMapperMapRed extends MapReduceBase with Mapper[AvroWrapper[GenericRecord], NullWritable, AvroKey[Long], AvroValue[GenericRecord]]{
 
-  override def map(inputRecord: GenericRecord, collector: AvroCollector[AvroPair[Long, GenericRecord]], reporter: Reporter) {
+  val avroKey = new AvroKey[Long]()
+  val avroValue = new AvroValue[GenericRecord]()
 
+  override def map(key: AvroWrapper[GenericRecord], value: NullWritable, collector: OutputCollector[AvroKey[Long], AvroValue[GenericRecord]], reporter: Reporter) {
+
+    val inputRecord = key.datum()
     val time = inputRecord.get("time").toString.toLong
-    collector.collect(new AvroPair[Long, GenericRecord](time, inputRecord))
+
+    //val pair = new AvroPair[Long, GenericRecord](time, inputRecord)
+
+    avroKey.datum(time)
+    avroValue.datum(inputRecord)
+
+    //collector.collect(new AvroPair[Long, GenericRecord](time, inputRecord))
+    collector.collect(avroKey, avroValue)
   }
 }
 

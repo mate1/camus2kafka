@@ -15,7 +15,7 @@ import org.apache.avro.file.{DataFileReader, FileReader, SeekableInput}
 import org.apache.avro.mapred._
 import org.apache.avro.io.DatumReader
 import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
-import org.apache.hadoop.io.{LongWritable, NullWritable}
+import org.apache.hadoop.io.{LongWritable, NullWritable, Text}
 import org.apache.avro.mapreduce.{AvroJob, AvroKeyValueOutputFormat, AvroKeyInputFormat}
 
 
@@ -72,17 +72,17 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
     job.setReducerClass(classOf[SendToKafkaReducer])
 
     job.setOutputKeyClass(classOf[LongWritable])
-    job.setOutputValueClass(classOf[AvroValue[GenericRecord]])
+    job.setOutputValueClass(classOf[Text])
 
     job.setMapOutputKeyClass(classOf[LongWritable])
-    job.setMapOutputValueClass(classOf[AvroValue[GenericRecord]])
+    job.setMapOutputValueClass(classOf[Text])
 
     job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
-    job.setOutputFormatClass(classOf[AvroKeyValueOutputFormat[LongWritable, AvroValue[GenericRecord]]])
+    //job.setOutputFormatClass(classOf[AvroKeyValueOutputFormat[LongWritable, AvroValue[GenericRecord]]])
 
     job.setReduceSpeculativeExecution(false)
     //job.setNumReduceTasks(0)
-    AvroJob.setOutputValueSchema(job, SCHEMA)
+    //AvroJob.setOutputValueSchema(job, SCHEMA)
 
     FileInputFormat.addInputPath(job, new Path(args(0)))
     FileOutputFormat.setOutputPath(job, new Path(args(1)))
@@ -100,13 +100,13 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
 }
 
 
-class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, AvroValue[GenericRecord]]{
+class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, Text]{
 
   val avroValue = new AvroValue[GenericRecord](null)
   val genericData = GenericData.get()
 
   override def map(key: AvroKey[GenericRecord], value: NullWritable,
-                   context: Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, AvroValue[GenericRecord]]#Context) {
+                   context: Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, Text]#Context) {
 
     val datum = key.datum()
     val time = datum.get("time").toString.toLong
@@ -114,15 +114,17 @@ class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, Long
     val record = genericData.newRecord(datum, schema).asInstanceOf[GenericRecord]
     avroValue.datum(record)
 
+    val txt = new Text(datum.toString)
+
     println(record.getSchema)
     
-    context.write(new LongWritable(time), avroValue)
+    context.write(new LongWritable(time), txt)
   }
 }
 
-class SendToKafkaReducer extends Reducer[LongWritable, AvroValue[GenericRecord], LongWritable, AvroValue[GenericRecord]]{
-  override def reduce(key: LongWritable, values: Iterable[AvroValue[GenericRecord]],
-                      context: Reducer[LongWritable, AvroValue[GenericRecord], LongWritable, AvroValue[GenericRecord]]#Context) {
+class SendToKafkaReducer extends Reducer[LongWritable, Text, LongWritable, Text]{
+  override def reduce(key: LongWritable, values: Iterable[Text],
+                      context: Reducer[LongWritable, Text, LongWritable, Text]#Context) {
 
     values.asScala.foreach(value => context.write(key,value))
   }
