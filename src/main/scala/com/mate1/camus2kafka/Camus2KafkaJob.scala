@@ -10,13 +10,12 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.lib.output.{NullOutputFormat, FileOutputFormat}
 import scala.Predef._
 import org.apache.avro.Schema
-import java.io.File
-import org.apache.avro.file.{DataFileReader, FileReader, SeekableInput}
+import java.io.{ByteArrayOutputStream, File}
 import org.apache.avro.mapred._
-import org.apache.avro.io.DatumReader
-import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
-import org.apache.hadoop.io.{LongWritable, NullWritable, Text}
-import org.apache.avro.mapreduce.{AvroJob, AvroKeyValueOutputFormat, AvroKeyInputFormat}
+import org.apache.avro.io.EncoderFactory
+import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord}
+import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
+import org.apache.avro.mapreduce.AvroKeyInputFormat
 
 
 /**
@@ -27,12 +26,6 @@ import org.apache.avro.mapreduce.{AvroJob, AvroKeyValueOutputFormat, AvroKeyInpu
  */
 
 class Camus2KafkaJob extends Configured with Tool with Callback {
-
-  val SCHEMA = org.apache.avro.Schema.parse("{\"type\":\"record\",\"name\":\"RegUserTrackingLog\",\"namespace\":\"com.edate.data.dto.avro\",\"doc\":\"logging for user tracking on all registration gateways (Mate1 pages, 3rd party pages, mobile apps, mobile web...)\",\"fields\":[{\"name\":\"mate1_uuid\",\"type\":\"string\"},{\"name\":\"time\",\"type\":\"long\"},{\"name\":\"request_guid\",\"type\":\"string\"},{\"name\":\"legacy_log_type\",\"type\":\"int\"},{\"name\":\"cookie_guid\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"string\"},{\"name\":\"user_agent\",\"type\":[\"null\",\"string\"],\"default\":\"null\"},{\"name\":\"mobile_version\",\"type\":[\"null\",\"string\"],\"default\":\"null\"},{\"name\":\"ip_address\",\"type\":[\"null\",\"string\"],\"default\":\"null\"},{\"name\":\"query_string\",\"type\":[\"null\",\"string\"],\"default\":\"null\"}]}");
-
-  private def parseSchemaFromFile(schemaFile: File) : Schema = {
-    new Schema.Parser().parse(schemaFile)
-  }
 
   def run(args: Array[String]): Int = {
     val conf = getConf
@@ -49,40 +42,23 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
       return 2
     }
 
-/*    val avroFile = new Path(args(0))
-    val input : SeekableInput = new FsInput(avroFile, conf)
+    val job = new Job(conf, "Camus to Kafka")
 
-    val datumReader : DatumReader[GenericRecord] = new GenericDatumReader[GenericRecord]()
-    val fileReader : FileReader[GenericRecord] = DataFileReader.openReader(input, datumReader)
 
-    val record : GenericData.Record = new GenericData.Record(fileReader.getSchema)
-
-    while(fileReader.hasNext){
-      fileReader.next(record)
-      println(record.get("user_agent"))
-      println(record.get("ip_address"))
-    }
-
-    fileReader.close()*/
-
-    val job = new Job(conf, "word count")
     job.setJarByClass(classOf[AvroReaderMapper])
     job.setMapperClass(classOf[AvroReaderMapper])
-    //job.setCombinerClass(classOf[SendToKafkaReducer])
     job.setReducerClass(classOf[SendToKafkaReducer])
 
     job.setOutputKeyClass(classOf[LongWritable])
-    job.setOutputValueClass(classOf[Text])
+    job.setOutputValueClass(classOf[BytesWritable])
 
     job.setMapOutputKeyClass(classOf[LongWritable])
-    job.setMapOutputValueClass(classOf[Text])
+    job.setMapOutputValueClass(classOf[BytesWritable])
+    job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
 
     job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
-    //job.setOutputFormatClass(classOf[AvroKeyValueOutputFormat[LongWritable, AvroValue[GenericRecord]]])
 
     job.setReduceSpeculativeExecution(false)
-    //job.setNumReduceTasks(0)
-    //AvroJob.setOutputValueSchema(job, SCHEMA)
 
     FileInputFormat.addInputPath(job, new Path(args(0)))
     FileOutputFormat.setOutputPath(job, new Path(args(1)))
@@ -100,32 +76,43 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
 }
 
 
-class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, Text]{
+class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]{
 
-  val avroValue = new AvroValue[GenericRecord](null)
+  val bytesWritableValue = new BytesWritable()
+  val bytesWritableKey = new BytesWritable()
   val genericData = GenericData.get()
 
   override def map(key: AvroKey[GenericRecord], value: NullWritable,
-                   context: Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, Text]#Context) {
+                   context: Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context) {
 
     val datum = key.datum()
-    val time = datum.get("time").toString.toLong
+    val time = datum.get("time").asInstanceOf[Long]
     val schema = datum.getSchema
     val record = genericData.newRecord(datum, schema).asInstanceOf[GenericRecord]
-    avroValue.datum(record)
 
-    val txt = new Text(datum.toString)
+    val out = new ByteArrayOutputStream()
+    val writer = new GenericDatumWriter[GenericRecord](schema)
 
-    println(record.getSchema)
-    
-    context.write(new LongWritable(time), txt)
+    val encoder = EncoderFactory.get().binaryEncoder(out, null)
+    writer.write(datum, encoder)
+    encoder.flush()
+    out.close()
+
+    val bytesArray = out.toByteArray
+
+    bytesWritableValue.set(bytesArray, 0 , bytesArray.length-1)
+
+    context.write(new LongWritable(time), bytesWritableValue)
   }
 }
 
-class SendToKafkaReducer extends Reducer[LongWritable, Text, LongWritable, Text]{
-  override def reduce(key: LongWritable, values: Iterable[Text],
-                      context: Reducer[LongWritable, Text, LongWritable, Text]#Context) {
+class SendToKafkaReducer extends Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]{
+  override def reduce(key: LongWritable, values: Iterable[BytesWritable],
+                      context: Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context) {
 
-    values.asScala.foreach(value => context.write(key,value))
+    values.asScala.foreach(value => {
+      println(key.toString)
+      context.write(key,value)
+    })
   }
 }
