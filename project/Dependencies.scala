@@ -28,20 +28,20 @@ object Dependencies {
     val specs2        = "1.12.3" // -> "1.13" when we bump to Scala 2.10.0
     val kafka         = "0.7.2"
     val camus         = "0.1.0-kafka0.7.2-scala2.9.2-SNAPSHOT"
-    val avro          = "1.7.5"
+    val avro          = "1.7.3"
   }
 
   object Libraries {
-    val hadoopCore    = "org.apache.hadoop"          %   "hadoop-core"         % V.hadoop        % "provided" 
-    val hadoopHdfs    = "org.apache.hadoop"          %   "hadoop-hdfs"         % V.hadoopHdfs    % "provided" exclude("commons-daemon", "commons-daemon")
-    val kafkaCore     = "kafka"                      %%  "kafka"               % V.kafka excludeAll(ExclusionRule(organization = "org.apache.hadoop"))
-    val camusEtlKafka = "com.linkedin.camus"         %   "camus-etl-kafka"     % V.camus
-    val camusApi      = "com.linkedin.camus"         %   "camus-api"           % V.camus
+    val hadoopCore    = "org.apache.hadoop"          %   "hadoop-core"         % V.hadoop        % "provided" excludeAll(ExclusionRule(organization = "org.apache.avro")) 
+    val hadoopHdfs    = "org.apache.hadoop"          %   "hadoop-hdfs"         % V.hadoopHdfs    % "provided" excludeAll(ExclusionRule(organization = "org.apache.avro"), ExclusionRule(organization = "commons-daemon", name = "commons-daemon"))
+    val kafkaCore     = "kafka"                      %%  "kafka"               % V.kafka excludeAll(ExclusionRule(organization = "org.apache.avro"), ExclusionRule(organization = "org.apache.hadoop"))
+    val camusEtlKafka = "com.linkedin.camus"         %   "camus-etl-kafka"     % V.camus excludeAll(ExclusionRule(organization = "org.apache.avro"))
+    val camusApi      = "com.linkedin.camus"         %   "camus-api"           % V.camus excludeAll(ExclusionRule(organization = "org.apache.avro"))
 
     // Scala (test only)
     val specs2       = "org.specs2"                 %% "specs2"               % V.specs2       % "test"
     val avro         = "org.apache.avro"             %  "avro"                % V.avro  force()
-    val avroMapRed         = "org.apache.avro"             %  "avro-mapred"                % V.avro
+    val avroMapRed         = "org.apache.avro"             %  "avro-mapred"                % V.avro classifier "hadoop2"
   }
 }
 

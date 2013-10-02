@@ -45,11 +45,13 @@ object BuildSettings {
         "commons-beanutils-core-1.8.0.jar", // Clash with each other and with commons-collections
         "commons-beanutils-1.7.0.jar",
         "avro-1.3.2.jar",
+        "avro-1.6.1.jar",
         "servlet-api-2.5-6.1.14.jar",
         "servlet-api-2.5-20081211.jar",
         "jsp-api-2.0.jar",
         "asm-3.2.jar",
-        "netty-3.2.6.Final.jar"
+        "netty-3.2.6.Final.jar",
+        "netty-3.2.2.Final.jar"
       ) 
       cp filter { jar => excludes(jar.data.getName) }
     },
