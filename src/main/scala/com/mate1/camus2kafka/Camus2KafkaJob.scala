@@ -6,16 +6,18 @@ import org.apache.hadoop.mapreduce.{Job, Reducer, Mapper}
 import java.lang.Iterable
 import scala.collection.JavaConverters._
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import org.apache.hadoop.mapreduce.lib.output.{NullOutputFormat, FileOutputFormat}
 import scala.Predef._
-import org.apache.avro.Schema
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ByteArrayOutputStream}
 import org.apache.avro.mapred._
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord}
 import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
+import org.apache.hadoop.hdfs.DistributedFileSystem
+import scala.io.Source
+import org.apache.avro.Schema
 
 
 /**
@@ -38,12 +40,19 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
     }
 
     if (args.length < 3) {
-      println("Usage: wordcount <in> <out> <inputSchema> (<outputSchema>)")
+      println("Usage: wordcount <in> <out> <outputSchema>")
       return 2
     }
 
-    val job = new Job(conf, "Camus to Kafka")
+    val outputSchemaFile = new Path(args(2))
+    val fs : FileSystem = outputSchemaFile.getFileSystem(conf)
+    val inputStream : FSDataInputStream = fs.open(outputSchemaFile)
+    val SCHEMA = Source.fromInputStream(inputStream).mkString
+    inputStream.close()
+    conf.setStrings("AVRO_OUTPUT_SCHEMA", SCHEMA)
 
+    
+    val job = new Job(conf, "Camus to Kafka")
 
     job.setJarByClass(classOf[AvroReaderMapper])
     job.setMapperClass(classOf[AvroReaderMapper])
@@ -78,20 +87,29 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
 
 class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]{
 
+  type AvroReaderContext = Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context
+
   val bytesWritableValue = new BytesWritable()
   val bytesWritableKey = new BytesWritable()
   val genericData = GenericData.get()
 
-  override def map(key: AvroKey[GenericRecord], value: NullWritable,
-                   context: Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context) {
+  var outputSchema : Option[Schema] = None
+
+  def getOutputSchema(context: AvroReaderContext) = outputSchema match {
+    case Some(schema) => schema
+    case None => {
+      outputSchema = Some(Schema.parse(context.getConfiguration.get("AVRO_OUTPUT_SCHEMA")))
+      outputSchema.get
+    }
+  }
+
+  override def map(key: AvroKey[GenericRecord], value: NullWritable, context: AvroReaderContext) {
 
     val datum = key.datum()
     val time = datum.get("time").asInstanceOf[Long]
-    val schema = datum.getSchema
-    val record = genericData.newRecord(datum, schema).asInstanceOf[GenericRecord]
 
     val out = new ByteArrayOutputStream()
-    val writer = new GenericDatumWriter[GenericRecord](schema)
+    val writer = new GenericDatumWriter[GenericRecord](getOutputSchema(context))
 
     val encoder = EncoderFactory.get().binaryEncoder(out, null)
     writer.write(datum, encoder)
@@ -107,11 +125,24 @@ class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, Long
 }
 
 class SendToKafkaReducer extends Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]{
-  override def reduce(key: LongWritable, values: Iterable[BytesWritable],
-                      context: Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context) {
+
+  type SendToKafkaContext = Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context
+
+  var outputSchema : Option[Schema] = None
+
+  def getOutputSchema(context: SendToKafkaContext) = outputSchema match {
+    case Some(schema) => schema
+    case None => {
+      outputSchema = Some(Schema.parse(context.getConfiguration.get("AVRO_OUTPUT_SCHEMA")))
+      outputSchema.get
+    }
+  }
+
+
+  override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: SendToKafkaContext) {
 
     values.asScala.foreach(value => {
-      println(key.toString)
+      println(key.toString+"\t\t")
       context.write(key,value)
     })
   }
