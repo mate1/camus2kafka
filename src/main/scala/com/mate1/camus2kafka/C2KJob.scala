@@ -6,6 +6,7 @@ import org.apache.hadoop.conf.Configuration
 import scala.annotation.tailrec
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import scala.io.Source
+import scala.collection.JavaConverters._
 
 /**
  * Created with IntelliJ IDEA.
@@ -80,6 +81,11 @@ trait C2KJobConfig {
    * @return true if the config is valid, false otherwise
    */
   protected def validateConfig(conf: Configuration) : Boolean = {
+
+    if (conf.getBoolean("printconf", false)){
+      conf.asScala.foreach(entry => println(entry.getKey+" : "+entry.getValue))
+    }
+
     @tailrec
     def getMissingParams(required: List[String], missing: List[String]) : List[String] = required match {
       case Nil => missing

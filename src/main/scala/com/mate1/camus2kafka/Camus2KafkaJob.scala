@@ -31,32 +31,22 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
 
     if (validateConfig(conf)){
 
-      if (conf.getBoolean("printconf", false)){
-        conf.asScala.foreach(entry => println(entry.getKey+" : "+entry.getValue))
-        println("\n=============\nJob Custom Params:\n")
-        args.foreach(println)
-        println("\n")
-      }
-
       val job = new Job(conf, "Camus to Kafka")
+
+      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.INPUT_PATH)))
 
       job.setJarByClass(classOf[Camus2KafkaMapper])
       job.setMapperClass(classOf[Camus2KafkaMapper])
       job.setReducerClass(classOf[Camus2KafkaReducer])
 
-      job.setOutputKeyClass(classOf[LongWritable])
-      job.setOutputValueClass(classOf[BytesWritable])
-
-      job.setMapOutputKeyClass(classOf[LongWritable])
-      job.setMapOutputValueClass(classOf[BytesWritable])
-      job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
-
       job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
 
+      job.setOutputKeyClass(classOf[LongWritable])
+      job.setOutputValueClass(classOf[BytesWritable])
+      job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
+
       job.setReduceSpeculativeExecution(false)
-
-      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.INPUT_PATH)))
-
+      
       if (runJob(job)) 0 else 1
 
     } else {
