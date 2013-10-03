@@ -6,18 +6,15 @@ import org.apache.hadoop.mapreduce.{Job, Reducer, Mapper}
 import java.lang.Iterable
 import scala.collection.JavaConverters._
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
-import org.apache.hadoop.mapreduce.lib.output.{NullOutputFormat, FileOutputFormat}
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat
 import scala.Predef._
-import java.io.{ByteArrayOutputStream}
+import java.io.ByteArrayOutputStream
 import org.apache.avro.mapred._
-import org.apache.avro.io.EncoderFactory
-import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord}
+import org.apache.avro.io.{BinaryDecoder, DecoderFactory, EncoderFactory}
+import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericData, GenericRecord}
 import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
-import org.apache.hadoop.hdfs.DistributedFileSystem
-import scala.io.Source
-import org.apache.avro.Schema
 
 
 /**
@@ -27,52 +24,44 @@ import org.apache.avro.Schema
  * Time: 12:15 PM
  */
 
-class Camus2KafkaJob extends Configured with Tool with Callback {
+class Camus2KafkaJob extends Configured with Tool with C2KJob{
 
   def run(args: Array[String]): Int = {
     val conf = getConf
 
-    if (conf.getBoolean("printconf", false)){
-      conf.asScala.foreach(entry => println(entry.getKey+" : "+entry.getValue))
-      println("\n=============\nJob Custom Params:\n")
-      args.foreach(println)
-      println("\n")
+    if (validateConfig(conf)){
+
+      if (conf.getBoolean("printconf", false)){
+        conf.asScala.foreach(entry => println(entry.getKey+" : "+entry.getValue))
+        println("\n=============\nJob Custom Params:\n")
+        args.foreach(println)
+        println("\n")
+      }
+
+      val job = new Job(conf, "Camus to Kafka")
+
+      job.setJarByClass(classOf[Camus2KafkaMapper])
+      job.setMapperClass(classOf[Camus2KafkaMapper])
+      job.setReducerClass(classOf[Camus2KafkaReducer])
+
+      job.setOutputKeyClass(classOf[LongWritable])
+      job.setOutputValueClass(classOf[BytesWritable])
+
+      job.setMapOutputKeyClass(classOf[LongWritable])
+      job.setMapOutputValueClass(classOf[BytesWritable])
+      job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
+
+      job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
+
+      job.setReduceSpeculativeExecution(false)
+
+      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.INPUT_PATH)))
+
+      if (runJob(job)) 0 else 1
+
+    } else {
+      2
     }
-
-    if (args.length < 3) {
-      println("Usage: wordcount <in> <out> <outputSchema>")
-      return 2
-    }
-
-    val outputSchemaFile = new Path(args(2))
-    val fs : FileSystem = outputSchemaFile.getFileSystem(conf)
-    val inputStream : FSDataInputStream = fs.open(outputSchemaFile)
-    val SCHEMA = Source.fromInputStream(inputStream).mkString
-    inputStream.close()
-    conf.setStrings("AVRO_OUTPUT_SCHEMA", SCHEMA)
-
-    
-    val job = new Job(conf, "Camus to Kafka")
-
-    job.setJarByClass(classOf[AvroReaderMapper])
-    job.setMapperClass(classOf[AvroReaderMapper])
-    job.setReducerClass(classOf[SendToKafkaReducer])
-
-    job.setOutputKeyClass(classOf[LongWritable])
-    job.setOutputValueClass(classOf[BytesWritable])
-
-    job.setMapOutputKeyClass(classOf[LongWritable])
-    job.setMapOutputValueClass(classOf[BytesWritable])
-    job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
-
-    job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
-
-    job.setReduceSpeculativeExecution(false)
-
-    FileInputFormat.addInputPath(job, new Path(args(0)))
-    FileOutputFormat.setOutputPath(job, new Path(args(1)))
-
-    if (job.waitForCompletion(true)) 0 else 1
   }
 
   override def successCallback {
@@ -85,31 +74,30 @@ class Camus2KafkaJob extends Configured with Tool with Callback {
 }
 
 
-class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]{
+class Camus2KafkaMapper
+  extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]
+  with C2KJobConfig {
 
-  type AvroReaderContext = Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context
+  type MapperContext = Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context
 
   val bytesWritableValue = new BytesWritable()
   val bytesWritableKey = new BytesWritable()
   val genericData = GenericData.get()
 
-  var outputSchema : Option[Schema] = None
 
-  def getOutputSchema(context: AvroReaderContext) = outputSchema match {
-    case Some(schema) => schema
-    case None => {
-      outputSchema = Some(Schema.parse(context.getConfiguration.get("AVRO_OUTPUT_SCHEMA")))
-      outputSchema.get
-    }
+  override def setup(context: MapperContext) {
+    super.setup(context)
+    initConfig(context.getConfiguration)
   }
 
-  override def map(key: AvroKey[GenericRecord], value: NullWritable, context: AvroReaderContext) {
+
+  override def map(key: AvroKey[GenericRecord], value: NullWritable, context: MapperContext) {
 
     val datum = key.datum()
     val time = datum.get("time").asInstanceOf[Long]
 
     val out = new ByteArrayOutputStream()
-    val writer = new GenericDatumWriter[GenericRecord](getOutputSchema(context))
+    val writer = new GenericDatumWriter[GenericRecord](C2KJobConfig.outputSchema)
 
     val encoder = EncoderFactory.get().binaryEncoder(out, null)
     writer.write(datum, encoder)
@@ -124,25 +112,29 @@ class AvroReaderMapper extends Mapper[AvroKey[GenericRecord], NullWritable, Long
   }
 }
 
-class SendToKafkaReducer extends Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]{
+class Camus2KafkaReducer
+  extends Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]
+  with C2KJobConfig {
 
-  type SendToKafkaContext = Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context
+  type ReducerContext = Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context
 
-  var outputSchema : Option[Schema] = None
 
-  def getOutputSchema(context: SendToKafkaContext) = outputSchema match {
-    case Some(schema) => schema
-    case None => {
-      outputSchema = Some(Schema.parse(context.getConfiguration.get("AVRO_OUTPUT_SCHEMA")))
-      outputSchema.get
-    }
+  override def setup(context: ReducerContext) {
+    super.setup(context)
+    initConfig(context.getConfiguration)
   }
 
-
-  override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: SendToKafkaContext) {
+  override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: ReducerContext) {
+    val datumReader : GenericDatumReader[GenericRecord] = new GenericDatumReader(C2KJobConfig.outputSchema)
+    val record : GenericData.Record = new GenericData.Record(C2KJobConfig.outputSchema)
+    val decoderFactory : DecoderFactory = DecoderFactory.get()
+    val decoder : BinaryDecoder = decoderFactory.binaryDecoder(Array[Byte](), null)
 
     values.asScala.foreach(value => {
-      println(key.toString+"\t\t")
+
+      datumReader.read(record, decoderFactory.binaryDecoder(value.getBytes, decoder))
+      
+      println(key.toString+"\t\t"+ record.get("user_agent"))
       context.write(key,value)
     })
   }

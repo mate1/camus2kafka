@@ -50,7 +50,7 @@ object JobRunner {
 
             // If the job extends the Callback trait then run the callback corresponding to the exit code
             tool match {
-              case cb : Callback => if (exitCode == 0) cb.successCallback else cb.errorCallback
+              case cb : C2KJob => if (exitCode == 0) cb.successCallback else cb.errorCallback
               case _ => ()
             }
           }
