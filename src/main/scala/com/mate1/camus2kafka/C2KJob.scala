@@ -27,14 +27,16 @@ object C2KJobConfig {
   val KAFKA_REPLAY_TOPIC = PREFIX+"kafka.replay.topic"
   val KAFKA_SOURCE_TOPIC = PREFIX+"kafka.source.topic"
   val KAFKA_CONSUMER_GROUP = PREFIX+"kafka.consumer.group"
+  val ZK_HOST = PREFIX+"zk.host"
 
   // Map of required parameters with their description
   val requiredParams = Map(
-    INPUT_PATH -> "The HDFS input path",
-    AVRO_OUTPUT_SCHEMA_PATH -> "The HDFS path of the avro schema to be used to encode the Kafka messages",
-    KAFKA_REPLAY_TOPIC -> "The Kafka topic where Camus2Kafka publishes all of the currently ingested records",
-    KAFKA_SOURCE_TOPIC -> "The original Kafka topic Camus read from",
-    KAFKA_CONSUMER_GROUP -> "The Kafka consumer group that will consume the replayed messages"
+    INPUT_PATH -> "The HDFS input path.",
+    AVRO_OUTPUT_SCHEMA_PATH -> "The HDFS path of the avro schema to be used to encode the Kafka messages.",
+    KAFKA_REPLAY_TOPIC -> "The Kafka topic where Camus2Kafka publishes all of the currently ingested records.",
+    KAFKA_SOURCE_TOPIC -> "The original Kafka topic Camus read from.",
+    KAFKA_CONSUMER_GROUP -> "The Kafka consumer group that will consume the replayed messages.",
+    ZK_HOST -> "The zookeeper host Camus2Kafka will connect to."
   )
 
   // Schema to be used to encode the messages we send to Kafka
@@ -92,7 +94,8 @@ trait C2KJobConfig {
         println("Missing parameters:\n")
         params.foreach(param => println("%s: %s".format(param, requiredParams.getOrElse(param, ""))))
         println()
-        println("Please specify the parameters using the -D command line option. Ex: package.JobClassName -D param=value\n")
+        println("Please specify the parameters using the -D command line option.")
+        println("Ex: package.JobClassName -D %s=value\n".format(params.head))
         false
       }
     }
