@@ -27,21 +27,23 @@ object C2KJobConfig {
   val AVRO_OUTPUT_SCHEMA_PATH = PREFIX+"avro.output.schema.path"
   val KAFKA_REPLAY_TOPIC = PREFIX+"kafka.replay.topic"
   val KAFKA_SOURCE_TOPIC = PREFIX+"kafka.source.topic"
+  val KAFKA_TOPIC = PREFIX+"kafka.topic"
   val KAFKA_CONSUMER_GROUP = PREFIX+"kafka.consumer.group"
-  val ZK_HOST = PREFIX+"zk.host"
+  val ZK_HOSTS = PREFIX+"zk.hosts"
+  val PRINTCONF = PREFIX+"printconf"
 
   // Map of required parameters with their description
   val requiredParams = Map(
     INPUT_PATH -> "The HDFS input path.",
     AVRO_OUTPUT_SCHEMA_PATH -> "The HDFS path of the avro schema to be used to encode the Kafka messages.",
-    KAFKA_REPLAY_TOPIC -> "The Kafka topic where Camus2Kafka publishes all of the currently ingested records.",
-    KAFKA_SOURCE_TOPIC -> "The original Kafka topic Camus read from.",
-    KAFKA_CONSUMER_GROUP -> "The Kafka consumer group that will consume the replayed messages.",
-    ZK_HOST -> "The zookeeper host Camus2Kafka will connect to."
+    KAFKA_TOPIC -> "The Kafka topic you want to process.",
+    KAFKA_CONSUMER_GROUP -> ("The (high-level) Kafka consumer group whose ZK offsets will be set by Camus2Kafka so that " +
+      "the regular Kafka topic can be stitched back at the correct cut off point after re-consuming all of the replay topic."),
+    ZK_HOSTS -> "The zookeeper hosts Camus2Kafka will connect to."
   )
 
   // Schema to be used to encode the messages we send to Kafka
-  lazy val outputSchema = Schema.parse(config.get(AVRO_OUTPUT_SCHEMA))
+  lazy val outputSchema = new Schema.Parser().parse(config.get(AVRO_OUTPUT_SCHEMA))
 
 
   // The Kafka topic where Camus2Kafka publishes all of the currently ingested records
@@ -82,8 +84,11 @@ trait C2KJobConfig {
    */
   protected def validateConfig(conf: Configuration) : Boolean = {
 
-    if (conf.getBoolean("printconf", false)){
-      conf.asScala.foreach(entry => println(entry.getKey+" : "+entry.getValue))
+    conf.get(PRINTCONF) match {
+      case "custom" => conf.asScala.toList.filter(entry => entry.getKey.contains(PREFIX)).sortBy(entry => entry.getKey)
+        .foreach(entry => println(entry.getKey+" : "+entry.getValue))
+      case "ALL" => conf.asScala.toList.sortBy(entry => entry.getKey).foreach(entry => println(entry.getKey+" : "+entry.getValue))
+      case _ => ()
     }
 
     @tailrec

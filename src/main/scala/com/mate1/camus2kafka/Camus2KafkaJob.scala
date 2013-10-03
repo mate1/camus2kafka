@@ -46,7 +46,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
       job.setOutputFormatClass(classOf[NullOutputFormat[LongWritable, BytesWritable]])
 
       job.setReduceSpeculativeExecution(false)
-      
+
       if (runJob(job)) 0 else 1
 
     } else {
