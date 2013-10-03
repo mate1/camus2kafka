@@ -22,7 +22,7 @@ import scala.collection.JavaConverters._
 object C2KJobConfig {
   // String values for the config parameters we use
   val PREFIX = "c2k."
-  val INPUT_PATH = PREFIX+"input.path"
+  val HDFS_INPUT_PATH = PREFIX+"hdfs.input.path"
   val AVRO_OUTPUT_SCHEMA = PREFIX+"avro.output.schema"
   val AVRO_OUTPUT_SCHEMA_PATH = PREFIX+"avro.output.schema.path"
   val KAFKA_REPLAY_TOPIC = PREFIX+"kafka.replay.topic"
@@ -30,11 +30,14 @@ object C2KJobConfig {
   val KAFKA_TOPIC = PREFIX+"kafka.topic"
   val KAFKA_CONSUMER_GROUP = PREFIX+"kafka.consumer.group"
   val ZK_HOSTS = PREFIX+"zk.hosts"
+  val CAMUS_DEST_DIR = PREFIX+"camus.dest.dir"
+  val CAMUS_EXEC_DIR = PREFIX+"camus.exec.dir"
   val PRINTCONF = PREFIX+"printconf"
 
   // Map of required parameters with their description
   val requiredParams = Map(
-    INPUT_PATH -> "The HDFS input path.",
+    CAMUS_DEST_DIR -> "The camus destination directory.",
+    CAMUS_EXEC_DIR -> "The camus execution directory.",
     AVRO_OUTPUT_SCHEMA_PATH -> "The HDFS path of the avro schema to be used to encode the Kafka messages.",
     KAFKA_TOPIC -> "The Kafka topic you want to process.",
     KAFKA_CONSUMER_GROUP -> ("The (high-level) Kafka consumer group whose ZK offsets will be set by Camus2Kafka so that " +

@@ -33,7 +33,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
 
       val job = new Job(conf, "Camus to Kafka")
 
-      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.INPUT_PATH)))
+      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.HDFS_INPUT_PATH)))
 
       job.setJarByClass(classOf[Camus2KafkaMapper])
       job.setMapperClass(classOf[Camus2KafkaMapper])
@@ -56,10 +56,6 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
 
   override def successCallback {
     super.successCallback
-  }
-
-  override def errorCallback {
-    super.errorCallback
   }
 }
 
@@ -115,17 +111,11 @@ class Camus2KafkaReducer
   }
 
   override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: ReducerContext) {
-    val datumReader : GenericDatumReader[GenericRecord] = new GenericDatumReader(C2KJobConfig.outputSchema)
-    val record : GenericData.Record = new GenericData.Record(C2KJobConfig.outputSchema)
-    val decoderFactory : DecoderFactory = DecoderFactory.get()
-    val decoder : BinaryDecoder = decoderFactory.binaryDecoder(Array[Byte](), null)
 
     values.asScala.foreach(value => {
 
-      datumReader.read(record, decoderFactory.binaryDecoder(value.getBytes, decoder))
-      
-      println(key.toString+"\t\t"+ record.get("user_agent"))
-      context.write(key,value)
+      Utils.publishToKafka(value.getBytes)
+
     })
   }
 }
