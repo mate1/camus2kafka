@@ -1,6 +1,9 @@
 package com.mate1.camus2kafka
 
 import org.apache.hadoop.mapreduce.Reducer
+import org.apache.hadoop.io.{Writable, NullWritable, BytesWritable}
+import java.lang.Iterable
+import scala.collection.JavaConverters._
 
 /**
  * Created with IntelliJ IDEA.
@@ -9,15 +12,19 @@ import org.apache.hadoop.mapreduce.Reducer
  * Time: 9:28 AM
  */
 
-abstract class AbstractC2KReducer[INKEY, INVALUE, OUTKEY, OUTVALUE]
-  extends Reducer[INKEY, INVALUE, OUTKEY, OUTVALUE]
+abstract class AbstractC2KReducer[INKEY <: Writable]
+  extends Reducer[INKEY, BytesWritable, NullWritable, NullWritable]
   with C2KJobConfig{
 
-  type ReducerContext = Reducer[INKEY, INVALUE, OUTKEY, OUTVALUE]#Context
+  type ReducerContext = Reducer[INKEY, BytesWritable, NullWritable, NullWritable]#Context
 
   override def setup(context: ReducerContext) {
     super.setup(context)
     initConfig(context.getConfiguration)
+  }
+
+  override def reduce(key: INKEY, values: Iterable[BytesWritable], context: ReducerContext) {
+    values.asScala.foreach(value => publish(value.getBytes))
   }
 
   def publish(msg: Array[Byte]) = {

@@ -3,11 +3,9 @@ package com.mate1.camus2kafka
 import kafka.producer.{ProducerData, ProducerConfig, Producer}
 import kafka.message.Message
 import java.util.Properties
-import org.apache.avro
 import org.apache.avro.io.{BinaryDecoder, DecoderFactory, EncoderFactory}
 import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord, GenericDatumReader}
 import java.io.ByteArrayOutputStream
-import org.apache.avro.specific.{SpecificRecord, SpecificDatumWriter}
 
 /**
  * Created with IntelliJ IDEA.
@@ -104,6 +102,7 @@ object Utils {
     out.toByteArray
   }
 
+  // TODO: Implement those methods
   def readCamusOffsets = null
   def setCamusOffsetsInZK = null
 }

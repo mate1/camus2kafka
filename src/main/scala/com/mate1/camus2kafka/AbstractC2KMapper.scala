@@ -1,6 +1,11 @@
 package com.mate1.camus2kafka
 
 import org.apache.hadoop.mapreduce.Mapper
+import org.apache.avro.mapred.AvroKey
+import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
+import org.apache.hadoop.io.{BytesWritable, NullWritable}
+import java.io.ByteArrayOutputStream
+import org.apache.avro.io.EncoderFactory
 
 /**
  * Created with IntelliJ IDEA.
@@ -9,19 +14,24 @@ import org.apache.hadoop.mapreduce.Mapper
  * Time: 9:28 AM
  */
 
+
 /**
  * Abstract class for the C2K Mapper
- * @tparam INKEY
- * @tparam INVALUE
  * @tparam OUTKEY
- * @tparam OUTVALUE
  */
-abstract class AbstractC2KMapper[INKEY, INVALUE, OUTKEY, OUTVALUE]
-  extends Mapper[INKEY, INVALUE, OUTKEY, OUTVALUE]
+abstract class AbstractC2KMapper[OUTKEY]
+  extends Mapper[AvroKey[GenericRecord], NullWritable, OUTKEY, BytesWritable]
   with C2KJobConfig{
 
+  // Vals that are used by getOutputValue
+  val bytesWritableValue = new BytesWritable()
+  val out = new ByteArrayOutputStream()
+  lazy val writer = new GenericDatumWriter[GenericRecord](C2KJobConfig.outputSchema)
+  val encoder = EncoderFactory.get().binaryEncoder(out, null)
+
   // That type definition make the code easier to read
-  type MapperContext = Mapper[INKEY, INVALUE, OUTKEY, OUTVALUE]#Context
+  type MapperContext = Mapper[AvroKey[GenericRecord], NullWritable, OUTKEY, BytesWritable]#Context
+
 
   /**
    * Initializes the C2KJobConfig
@@ -32,24 +42,17 @@ abstract class AbstractC2KMapper[INKEY, INVALUE, OUTKEY, OUTVALUE]
     initConfig(context.getConfiguration)
   }
 
+
   /**
    * A default implementation of the map method that uses the getOutputKey and getOutputValue methods
    * @param key
    * @param value
    * @param context
    */
-  override def map(key: INKEY, value: INVALUE, context: MapperContext) {
-
+  override def map(key: AvroKey[GenericRecord], value: NullWritable, context: MapperContext) {
     context.write(getOutputKey(key,value), getOutputValue(key,value))
   }
 
-  /**
-   * Provide the output key that will be written to the Mapper's context and sent to the Reducer
-   * @param key The input key
-   * @param value The input value
-   * @return The output key that will be sent to the Reducer
-   */
-  def getOutputKey(key: INKEY, value: INVALUE) : OUTKEY
 
   /**
    * Provide the output value that will be written to the Mapper's context and sent to the Reducer
@@ -57,6 +60,23 @@ abstract class AbstractC2KMapper[INKEY, INVALUE, OUTKEY, OUTVALUE]
    * @param value The input value
    * @return The output value that will be sent to the Reducer
    */
-  def getOutputValue(key: INKEY, value: INVALUE) : OUTVALUE
+  def getOutputValue(key: AvroKey[GenericRecord], value: NullWritable): BytesWritable = {
+    out.reset()
+    writer.write(key.datum(), encoder)
+    encoder.flush()
 
+    val bytesArray = out.toByteArray
+
+    bytesWritableValue.set(bytesArray, 0 , bytesArray.length-1)
+    bytesWritableValue
+  }
+
+
+  /**
+   * Provide the output key that will be written to the Mapper's context and sent to the Reducer
+   * @param key The input key
+   * @param value The input value
+   * @return The output key that will be sent to the Reducer
+   */
+  def getOutputKey(key: AvroKey[GenericRecord], value: NullWritable) : OUTKEY
 }

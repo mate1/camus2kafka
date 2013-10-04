@@ -1,6 +1,5 @@
 package com.mate1.camus2kafka
 
-import org.apache.hadoop.mapreduce.Job
 import org.apache.avro.Schema
 import org.apache.hadoop.conf.Configuration
 import scala.annotation.tailrec
@@ -92,7 +91,7 @@ object C2KJobConfig {
 
   // The Camus history dir that contains the offsets
   lazy val camusHistoryDir = config.get(CAMUS_HISTORY_DIR) match {
-    case null => camusExecDir + "/" + "history"
+    case null => camusExecDir + "/base/history"
     case dir => dir
   }
 }
@@ -160,34 +159,4 @@ trait C2KJobConfig {
       }
     }
   }
-}
-
-trait C2KJob extends C2KJobConfig {
-
-  /**
-   * Tries to init the config before running the job. If the config fails to init then the job won't run
-   * @param job The job to run
-   * @return true if the job was successful, false otherwise
-   */
-  def runJob(job : Job) : Boolean = {
-    initConfig(job.getConfiguration) match {
-      case true => job.waitForCompletion(true)
-
-      case _ => {
-        println("Error setting the Camus2Kafka configuration, please check your configuration")
-        false
-      }
-    }
-  }
-
-  /**
-   * Success Callback that gets called by the JobRunner
-   */
-  def successCallback = println("Everything was OK!")
-
-  /**
-   * Error Callback that gets called by the JobRunner
-   */
-  def errorCallback = println("Something went wrong!")
-
 }
