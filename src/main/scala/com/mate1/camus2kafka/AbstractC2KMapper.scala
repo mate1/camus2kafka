@@ -1,9 +1,6 @@
 package com.mate1.camus2kafka
 
 import org.apache.hadoop.mapreduce.Mapper
-import org.apache.avro.generic.{GenericRecord, GenericData}
-import org.apache.hadoop.io.{NullWritable, BytesWritable}
-import org.apache.avro.mapred.AvroKey
 
 /**
  * Created with IntelliJ IDEA.
