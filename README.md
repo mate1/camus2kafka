@@ -16,3 +16,6 @@ The 'fat jar' is now available as:
 
     target/camus2kafka-project-0.0.1.jar
 
+## Running
+
+    $ hadoop jar target/camus2kafka-project-0.0.1.jar	
