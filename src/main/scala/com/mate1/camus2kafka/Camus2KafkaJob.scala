@@ -28,17 +28,17 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
     if (initConfig(conf)){
       val job = new Job(conf, "Camus to Kafka")
 
+      // Settings based on the configuration provided by the user
       FileInputFormat.addInputPath(job, new Path(C2KJobConfig.hdfsInputDir))
+      job.setJarByClass(C2KJobConfig.mapperClass)
+      job.setMapperClass(C2KJobConfig.mapperClass)
+      job.setReducerClass(C2KJobConfig.reducerClass)
+      job.setMapOutputKeyClass(C2KJobConfig.mapperOutKeyClass)
 
-      job.setJarByClass(classOf[Camus2KafkaMapper])
-      job.setMapperClass(classOf[Camus2KafkaMapper])
-      job.setReducerClass(classOf[Camus2KafkaReducer])
 
+      // Static settings
       job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
-
-      job.setMapOutputKeyClass(classOf[LongWritable])
       job.setMapOutputValueClass(classOf[BytesWritable])
-
       job.setOutputKeyClass(classOf[NullWritable])
       job.setOutputValueClass(classOf[NullWritable])
       job.setOutputFormatClass(classOf[NullOutputFormat[NullWritable, NullWritable]])
@@ -52,10 +52,8 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
         errorCallback
         1
       }
-
     } else {
       println("Error setting the Camus2Kafka configuration, please check your configuration")
-      errorCallback
       2
     }
   }
@@ -73,7 +71,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
   }
 }
 
-class Camus2KafkaMapper
+class Camus2KafkaMapperByTime
   extends AbstractC2KMapper[LongWritable] {
   val longWritableKey = new LongWritable()
 
@@ -83,7 +81,7 @@ class Camus2KafkaMapper
   }
 }
 
-class Camus2KafkaReducer
+class Camus2KafkaReducerByTime
   extends AbstractC2KReducer[LongWritable] {
   def processBeforePublish(msg: Array[Byte])  = Utils.fromBinaryToJsonEncoded(msg)
 }

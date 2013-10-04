@@ -3,7 +3,7 @@ package com.mate1.camus2kafka
 import org.apache.hadoop.mapreduce.Mapper
 import org.apache.avro.mapred.AvroKey
 import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
-import org.apache.hadoop.io.{BytesWritable, NullWritable}
+import org.apache.hadoop.io.{Writable, BytesWritable, NullWritable}
 import java.io.ByteArrayOutputStream
 import org.apache.avro.io.EncoderFactory
 
@@ -19,7 +19,7 @@ import org.apache.avro.io.EncoderFactory
  * Abstract class for the C2K Mapper
  * @tparam OUTKEY
  */
-abstract class AbstractC2KMapper[OUTKEY]
+abstract class AbstractC2KMapper[OUTKEY <: Writable]
   extends Mapper[AvroKey[GenericRecord], NullWritable, OUTKEY, BytesWritable]
   with C2KJobConfig{
 

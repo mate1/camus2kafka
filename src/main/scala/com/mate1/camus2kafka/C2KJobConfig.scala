@@ -6,6 +6,7 @@ import scala.annotation.tailrec
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import scala.io.Source
 import scala.collection.JavaConverters._
+import org.apache.hadoop.io.LongWritable
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,6 +33,9 @@ object C2KJobConfig {
   val CAMUS_DEST_DIR = PREFIX+"camus.dest.dir"
   val CAMUS_EXEC_DIR = PREFIX+"camus.exec.dir"
   val CAMUS_HISTORY_DIR = PREFIX+"camus.history.dir"
+  val REDUCER_CLASS = PREFIX+"reducer.class"
+  val MAPPER_CLASS = PREFIX+"mapper.class"
+  val MAPPER_OUTKEY_CLASS = PREFIX+"mapper.outkey.class"
   val PRINTCONF = PREFIX+"printconf"
 
   // Map of required parameters with their description
@@ -94,6 +98,25 @@ object C2KJobConfig {
     case null => camusExecDir + "/base/history"
     case dir => dir
   }
+  
+  // The mapper class (Default is Camus2KafkaMapperByTime)
+  lazy val mapperClass  = config.get(MAPPER_CLASS) match {
+    case null => classOf[Camus2KafkaMapperByTime].asInstanceOf[Class[AbstractC2KMapper[_]]]
+    case className => Class.forName(className).asInstanceOf[Class[AbstractC2KMapper[_]]]
+  }
+
+  // The reducer class (Default is Camus2KafkaReducerByTime)
+  lazy val reducerClass = config.get(REDUCER_CLASS) match {
+    case null => classOf[Camus2KafkaReducerByTime].asInstanceOf[Class[AbstractC2KReducer[_]]]
+    case className => Class.forName(className).asInstanceOf[Class[AbstractC2KReducer[_]]]
+  }
+
+  // The Mapper Out Key class (Default is LongWritable)
+  lazy val mapperOutKeyClass = config.get(MAPPER_OUTKEY_CLASS) match {
+    case null => classOf[LongWritable]
+    case className => Class.forName(className)
+  }
+
 }
 
 
@@ -154,7 +177,7 @@ trait C2KJobConfig {
         params.foreach(param => println("%s: %s".format(param, requiredParams.getOrElse(param, ""))))
         println()
         println("Please specify the parameters using the -D command line option.")
-        println("Ex: package.JobClassName -D %s=value\n".format(params.head))
+        println("Ex: hadoop jar camus2kafka.jar -D %s=value\n".format(params.head))
         false
       }
     }
