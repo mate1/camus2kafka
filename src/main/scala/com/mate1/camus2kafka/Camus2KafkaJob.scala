@@ -2,7 +2,7 @@ package com.mate1.camus2kafka
 
 import org.apache.hadoop.util.Tool
 import org.apache.hadoop.conf.Configured
-import org.apache.hadoop.mapreduce.{Job, Reducer, Mapper}
+import org.apache.hadoop.mapreduce.Job
 import java.lang.Iterable
 import scala.collection.JavaConverters._
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
@@ -11,8 +11,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat
 import scala.Predef._
 import java.io.ByteArrayOutputStream
 import org.apache.avro.mapred._
-import org.apache.avro.io.{BinaryDecoder, DecoderFactory, EncoderFactory}
-import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericData, GenericRecord}
+import org.apache.avro.io.EncoderFactory
+import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
 import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
 
@@ -59,28 +59,24 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
   }
 }
 
-
 class Camus2KafkaMapper
-  extends Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]
+  extends AbstractC2KMapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]
   with C2KJobConfig {
 
-  type MapperContext = Mapper[AvroKey[GenericRecord], NullWritable, LongWritable, BytesWritable]#Context
-
   val bytesWritableValue = new BytesWritable()
-  val bytesWritableKey = new BytesWritable()
-  val genericData = GenericData.get()
+  val longWritableKey = new LongWritable()
 
 
-  override def setup(context: MapperContext) {
-    super.setup(context)
-    initConfig(context.getConfiguration)
-  }
-
-
-  override def map(key: AvroKey[GenericRecord], value: NullWritable, context: MapperContext) {
-
+  def getOutputKey(key: AvroKey[GenericRecord], value: NullWritable): LongWritable = {
     val datum = key.datum()
     val time = datum.get("time").asInstanceOf[Long]
+
+    longWritableKey.set(time)
+    longWritableKey
+  }
+
+  def getOutputValue(key: AvroKey[GenericRecord], value: NullWritable): BytesWritable = {
+    val datum = key.datum()
 
     val out = new ByteArrayOutputStream()
     val writer = new GenericDatumWriter[GenericRecord](C2KJobConfig.outputSchema)
@@ -93,29 +89,18 @@ class Camus2KafkaMapper
     val bytesArray = out.toByteArray
 
     bytesWritableValue.set(bytesArray, 0 , bytesArray.length-1)
-
-    context.write(new LongWritable(time), bytesWritableValue)
+    bytesWritableValue
   }
 }
 
 class Camus2KafkaReducer
-  extends Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]
-  with C2KJobConfig {
+  extends AbstractC2KReducer[LongWritable, BytesWritable, LongWritable, BytesWritable] {
 
-  type ReducerContext = Reducer[LongWritable, BytesWritable, LongWritable, BytesWritable]#Context
-
-
-  override def setup(context: ReducerContext) {
-    super.setup(context)
-    initConfig(context.getConfiguration)
-  }
+  def processBeforePublish(msg: Array[Byte])  = Utils.convertToJSONEncoded(msg)
 
   override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: ReducerContext) {
-
-    values.asScala.foreach(value => {
-
-      Utils.publishToKafka(value.getBytes)
-
-    })
+    values.asScala.foreach(value => publish(value.getBytes))
   }
+
+
 }
