@@ -29,11 +29,10 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
   def run(args: Array[String]): Int = {
     val conf = getConf
 
-    if (validateConfig(conf)){
-
+    if (initConfig(conf)){
       val job = new Job(conf, "Camus to Kafka")
 
-      FileInputFormat.addInputPath(job, new Path(conf.get(C2KJobConfig.HDFS_INPUT_PATH)))
+      FileInputFormat.addInputPath(job, new Path(C2KJobConfig.hdfsInputDir))
 
       job.setJarByClass(classOf[Camus2KafkaMapper])
       job.setMapperClass(classOf[Camus2KafkaMapper])
@@ -50,12 +49,17 @@ class Camus2KafkaJob extends Configured with Tool with C2KJob{
       if (runJob(job)) 0 else 1
 
     } else {
+      println("Error setting the Camus2Kafka configuration, please check your configuration")
       2
     }
   }
 
   override def successCallback {
-    super.successCallback
+
+    Utils.readCamusOffsets
+    Utils.setCamusOffsetsInZK
+
+    println("Yay!")
   }
 }
 

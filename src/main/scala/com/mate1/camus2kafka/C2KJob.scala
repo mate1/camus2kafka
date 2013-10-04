@@ -20,18 +20,19 @@ import scala.collection.JavaConverters._
  * This object contains the Camus2Kafka config that is used for a C2K job
  */
 object C2KJobConfig {
+
   // String values for the config parameters we use
   val PREFIX = "c2k."
-  val HDFS_INPUT_PATH = PREFIX+"hdfs.input.path"
+  val HDFS_INPUT_DIR = PREFIX+"hdfs.input.dir"
   val AVRO_OUTPUT_SCHEMA = PREFIX+"avro.output.schema"
   val AVRO_OUTPUT_SCHEMA_PATH = PREFIX+"avro.output.schema.path"
   val KAFKA_REPLAY_TOPIC = PREFIX+"kafka.replay.topic"
-  val KAFKA_SOURCE_TOPIC = PREFIX+"kafka.source.topic"
   val KAFKA_TOPIC = PREFIX+"kafka.topic"
   val KAFKA_CONSUMER_GROUP = PREFIX+"kafka.consumer.group"
   val ZK_HOSTS = PREFIX+"zk.hosts"
   val CAMUS_DEST_DIR = PREFIX+"camus.dest.dir"
   val CAMUS_EXEC_DIR = PREFIX+"camus.exec.dir"
+  val CAMUS_HISTORY_DIR = PREFIX+"camus.history.dir"
   val PRINTCONF = PREFIX+"printconf"
 
   // Map of required parameters with their description
@@ -45,18 +46,55 @@ object C2KJobConfig {
     ZK_HOSTS -> "The zookeeper hosts Camus2Kafka will connect to."
   )
 
+  // The config object that is used to get the lazy vals below
+  var config : Configuration = null
+
+
   // Schema to be used to encode the messages we send to Kafka
-  lazy val outputSchema = new Schema.Parser().parse(config.get(AVRO_OUTPUT_SCHEMA))
-
-
-  // The Kafka topic where Camus2Kafka publishes all of the currently ingested records
-  lazy val replayTopic = config.get(KAFKA_REPLAY_TOPIC)
+  lazy val outputSchema = {
+    val outputSchemaFile = new Path(config.get(AVRO_OUTPUT_SCHEMA_PATH))
+    val fs : FileSystem = outputSchemaFile.getFileSystem(config)
+    val inputStream : FSDataInputStream = fs.open(outputSchemaFile)
+    val SCHEMA = Source.fromInputStream(inputStream).mkString
+    inputStream.close()
+    new Schema.Parser().parse(SCHEMA)
+  }
 
   // The original Kafka topic Camus read from
-  lazy val sourceTopic = config.get(KAFKA_SOURCE_TOPIC)
+  lazy val sourceTopic = config.get(KAFKA_TOPIC)
 
-  // The config object that is used to get the lazy vals above
-  var config : Configuration = null
+  // The Camus destination dir that contains the data
+  lazy val camusDestDir = config.get(CAMUS_DEST_DIR)
+
+  // The Camus execution directory that contains the history and the offsets
+  lazy val camusExecDir = config.get(CAMUS_EXEC_DIR)
+
+  // The zookeeper hosts
+  lazy val zkHosts = config.get(ZK_HOSTS)
+
+
+
+  /**
+   * The vals below are optional params that have a default value based on the required params.
+   */
+
+  // The HDFS input path that contains the avro data
+  lazy val hdfsInputDir = config.get(HDFS_INPUT_DIR) match {
+    case null => camusDestDir + "/" + sourceTopic
+    case path => path
+  }
+
+  // The Kafka topic where Camus2Kafka publishes all of the currently ingested records
+  lazy val replayTopic = config.get(KAFKA_REPLAY_TOPIC) match {
+    case null => sourceTopic+"_REPLAY"
+    case topic => topic
+  }
+
+  // The Camus history dir that contains the offsets
+  lazy val camusHistoryDir = config.get(CAMUS_HISTORY_DIR) match {
+    case null => camusExecDir + "/" + "history"
+    case dir => dir
+  }
 }
 
 
@@ -72,11 +110,19 @@ trait C2KJobConfig {
    * @return true if the config is valid, false otherwise
    */
   protected def initConfig(conf: Configuration) : Boolean = {
-    if (validateConfig(conf)) {
-      config = conf
-      setSchema()
-    } else {
-      false
+    config match {
+      case null => {
+        if (validateConfig(conf)) {
+          config = conf
+
+          // Make sure that the Schema is valid
+          outputSchema != null
+
+        } else {
+          false
+        }
+      }
+      case _ => true
     }
   }
 
@@ -112,22 +158,6 @@ trait C2KJobConfig {
         println("Ex: package.JobClassName -D %s=value\n".format(params.head))
         false
       }
-    }
-  }
-
-  private def setSchema() : Boolean = try {
-    val outputSchemaFile = new Path(config.get(AVRO_OUTPUT_SCHEMA_PATH))
-    val fs : FileSystem = outputSchemaFile.getFileSystem(config)
-    val inputStream : FSDataInputStream = fs.open(outputSchemaFile)
-    val SCHEMA = Source.fromInputStream(inputStream).mkString
-    inputStream.close()
-    config.setStrings(AVRO_OUTPUT_SCHEMA, SCHEMA)
-    true
-  } catch {
-    case e => {
-      println("Error: Can't set the output schema.")
-      e.printStackTrace()
-      false
     }
   }
 }

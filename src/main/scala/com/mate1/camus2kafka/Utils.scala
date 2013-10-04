@@ -24,7 +24,7 @@ object Utils {
 
     val producer = try {
 
-      val zkHosts = C2KJobConfig.config.get(C2KJobConfig.ZK_HOSTS)
+      val zkHosts = C2KJobConfig.zkHosts
 
       // The producer properties
       val producerProps = new Properties()
@@ -49,7 +49,7 @@ object Utils {
 
 
   def publishToKafka(msg: Array[Byte]) = {
-    val topic = C2KJobConfig.config.get(C2KJobConfig.KAFKA_TOPIC)
+    val topic = C2KJobConfig.replayTopic
 
     try {
 
@@ -94,4 +94,7 @@ object Utils {
 
     out.toByteArray
   }
+
+  def readCamusOffsets = null
+  def setCamusOffsetsInZK = null
 }
