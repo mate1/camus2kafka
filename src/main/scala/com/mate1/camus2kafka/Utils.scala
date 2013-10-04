@@ -18,7 +18,7 @@ import org.apache.avro.specific.{SpecificRecord, SpecificDatumWriter}
 object Utils {
 
   /**
-   * Creates a producer for the given topic
+   * Creates a Kafka producer
    */
   private def createKafkaProducer : Option[Producer[String, Message]] = {
 
@@ -48,6 +48,10 @@ object Utils {
   }
 
 
+  /**
+   * Publish a message to the replay topic
+   * @param msg
+   */
   def publishToKafka(msg: Array[Byte]) = {
     val topic = C2KJobConfig.replayTopic
 
@@ -73,7 +77,12 @@ object Utils {
     }
   }
 
-  def convertToJSONEncoded(msg: Array[Byte]) : Array[Byte]= {
+  /**
+   * Convert an array of bytes of a binary encoded message to a an array of bytes of Json encoded message
+   * @param msg Array of bytes from a binary encoded message
+   * @return Array of bytes from a Json encoded message
+   */
+  def fromBinaryToJsonEncoded(msg: Array[Byte]) : Array[Byte]= {
 
     val schema = C2KJobConfig.outputSchema
 

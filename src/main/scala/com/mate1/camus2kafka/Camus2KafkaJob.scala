@@ -100,7 +100,7 @@ class Camus2KafkaMapper
 class Camus2KafkaReducer
   extends AbstractC2KReducer[LongWritable, BytesWritable, LongWritable, BytesWritable] {
 
-  def processBeforePublish(msg: Array[Byte])  = Utils.convertToJSONEncoded(msg)
+  def processBeforePublish(msg: Array[Byte])  = Utils.fromBinaryToJsonEncoded(msg)
 
   override def reduce(key: LongWritable, values: Iterable[BytesWritable], context: ReducerContext) {
     values.asScala.foreach(value => publish(value.getBytes))
