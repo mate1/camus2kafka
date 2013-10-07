@@ -33,6 +33,7 @@ object C2KJobConfig {
   val CAMUS_DEST_DIR = PREFIX+"camus.dest.dir"
   val CAMUS_EXEC_DIR = PREFIX+"camus.exec.dir"
   val CAMUS_HISTORY_DIR = PREFIX+"camus.history.dir"
+  val CAMUS_OFFSETS_DIR = PREFIX+"camus.offsets.dir"
   val REDUCER_CLASS = PREFIX+"reducer.class"
   val MAPPER_CLASS = PREFIX+"mapper.class"
   val MAPPER_OUTKEY_CLASS = PREFIX+"mapper.outkey.class"
@@ -65,6 +66,9 @@ object C2KJobConfig {
 
   // The original Kafka topic Camus read from
   lazy val sourceTopic = config.get(KAFKA_TOPIC)
+
+  // The consumer group that will consume the logs
+  lazy val consumerGroup = config.get(KAFKA_CONSUMER_GROUP)
 
   // The Camus destination dir that contains the data
   lazy val camusDestDir = config.get(CAMUS_DEST_DIR)

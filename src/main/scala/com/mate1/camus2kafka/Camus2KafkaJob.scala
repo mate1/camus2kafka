@@ -4,13 +4,14 @@ import org.apache.hadoop.util.Tool
 import org.apache.hadoop.conf.Configured
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat
 import scala.Predef._
 import org.apache.avro.mapred._
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
+import org.apache.hadoop.hdfs.DistributedFileSystem
 
 
 /**
@@ -45,12 +46,18 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
       job.setReduceSpeculativeExecution(false)
 
-      if (job.waitForCompletion(true)) {
+      if (conf.getBoolean("debug.callback", false)){
         successCallback
         0
       } else {
-        errorCallback
-        1
+
+        if (job.waitForCompletion(true)) {
+          successCallback
+          0
+        } else {
+          errorCallback
+          1
+        }
       }
     } else {
       println("Error setting the Camus2Kafka configuration, please check your configuration")
@@ -60,10 +67,10 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
   def successCallback {
 
-    Utils.readCamusOffsets
-    Utils.setCamusOffsetsInZK
-
-    println("Yay!")
+    Utils.setCamusOffsetsInZK match {
+      case true => println("Yay, for real!")
+      case false => println("Error in successCallback: Could not set the offsets in ZK")
+    }
   }
 
   def errorCallback {

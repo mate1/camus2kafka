@@ -36,7 +36,9 @@ object Camus2KafkaProjectBuild extends Build {
         Libraries.camusEtlKafka,
         Libraries.camusApi,
         Libraries.avro,
-        Libraries.avroMapRed
+        Libraries.avroMapRed,
+        Libraries.akkaActor,
+        Libraries.akkaAgent
       )
     )
   .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)

@@ -29,6 +29,7 @@ object Dependencies {
     val kafka         = "0.7.2"
     val camus         = "0.1.0-kafka0.7.2-scala2.9.2-SNAPSHOT"
     val avro          = "1.7.3"
+    val akka          = "2.0.5"
   }
 
   object Libraries {
@@ -37,11 +38,13 @@ object Dependencies {
     val kafkaCore     = "kafka"                      %%  "kafka"               % V.kafka excludeAll(ExclusionRule(organization = "org.apache.avro"), ExclusionRule(organization = "org.apache.hadoop"))
     val camusEtlKafka = "com.linkedin.camus"         %   "camus-etl-kafka"     % V.camus excludeAll(ExclusionRule(organization = "org.apache.avro"))
     val camusApi      = "com.linkedin.camus"         %   "camus-api"           % V.camus excludeAll(ExclusionRule(organization = "org.apache.avro"))
+    val avro         = "org.apache.avro"             %  "avro"                % V.avro  force()
+    val avroMapRed         = "org.apache.avro"             %  "avro-mapred"                % V.avro classifier "hadoop2"
+    val akkaActor     = "com.typesafe.akka"          %  "akka-actor"          % V.akka
+    val akkaAgent     = "com.typesafe.akka"          %  "akka-agent"          % V.akka
 
     // Scala (test only)
     val specs2       = "org.specs2"                 %% "specs2"               % V.specs2       % "test"
-    val avro         = "org.apache.avro"             %  "avro"                % V.avro  force()
-    val avroMapRed         = "org.apache.avro"             %  "avro-mapred"                % V.avro classifier "hadoop2"
   }
 }
 
