@@ -19,3 +19,6 @@ The 'fat jar' is now available as:
 ## Running
 
     $ hadoop jar target/camus2kafka-project-0.0.1.jar	
+
+## Configuration
+Check the [example configuration file](http://github.com/mate1/camus2kafka/blob/master/example_conf.xml) for the supported parameters. The properties in the configuration file can be overriden using the **-D name=value** command line argument
