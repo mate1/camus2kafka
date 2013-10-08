@@ -11,8 +11,6 @@ import org.apache.avro.mapred._
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
-import org.apache.hadoop.hdfs.DistributedFileSystem
-
 
 /**
  * Created with IntelliJ IDEA.
@@ -46,8 +44,8 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
       job.setReduceSpeculativeExecution(false)
 
-      if (conf.getBoolean("debug.callback", false)){
-        successCallback
+      if (C2KJobConfig.setZKOffsetsOnly){
+        Utils.setCamusOffsetsInZK
         0
       } else {
 

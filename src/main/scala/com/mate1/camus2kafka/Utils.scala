@@ -8,7 +8,7 @@ import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord, 
 import java.io.ByteArrayOutputStream
 import org.apache.hadoop.io.SequenceFile
 import org.apache.hadoop.io.SequenceFile.Reader
-import org.apache.hadoop.fs.{FileSystem, FileStatus, GlobFilter, Path}
+import org.apache.hadoop.fs._
 import com.linkedin.camus.etl.kafka.common.EtlKey
 import org.apache.zookeeper.{WatchedEvent, Watcher, ZooKeeper}
 import org.apache.zookeeper.Watcher.Event
@@ -16,6 +16,7 @@ import akka.actor.ActorSystem
 import akka.agent.Agent
 import org.apache.zookeeper.KeeperException.NoNodeException
 import scala.collection.mutable
+import scala.Some
 
 /**
  * Created with IntelliJ IDEA.
@@ -59,7 +60,7 @@ object Utils {
   /**
    * Publish a message to the replay topic
    *
-   * @param msg
+   * @param msg The message to publish
    */
   def publishToKafka(msg: Array[Byte]) = {
     val topic = C2KJobConfig.replayTopic
@@ -120,36 +121,27 @@ object Utils {
    * @return true if successful, false otherwise
    */
   def setCamusOffsetsInZK() : Boolean = try {
-    val fs = new Path(C2KJobConfig.camusHistoryDir).getFileSystem(C2KJobConfig.config)
+
     val etlKey = new EtlKey()
 
     getZookeeper match {
       case Some(zk) => {
-        getOffsetsFiles(fs) match {
-          case None => {
-            println("No offset files found.")
-            zk.close()
-            false
-          }
-          case Some(files) => {
-            val etlkeys = new mutable.MutableList[EtlKey]()
+        val etlkeys = new mutable.MutableList[EtlKey]()
 
-            files.foreach(file => {
-              val reader : SequenceFile.Reader = new Reader(C2KJobConfig.config, Reader.file(file.getPath))
+        getOffsetsFiles.foreach(file => {
+          val reader : SequenceFile.Reader = new Reader(C2KJobConfig.config, Reader.file(file.getPath))
 
-              while (reader.next(etlKey)) {
-                etlKey.getTopic match {
-                  case topic if topic == C2KJobConfig.sourceTopic => etlkeys += new EtlKey(etlKey)
-                  case _ => ()
-                }
-              }
-              reader.close()
-            })
-            writeOffsetsInZK(etlkeys, zk)
-            zk.close()
-            true
+          while (reader.next(etlKey)) {
+            etlKey.getTopic match {
+              case topic if topic == C2KJobConfig.sourceTopic => etlkeys += new EtlKey(etlKey)
+              case _ => ()
+            }
           }
-        }
+          reader.close()
+        })
+        writeOffsetsInZK(etlkeys, zk)
+        zk.close()
+        true
       }
       case None => {
         println("Could not connect to ZK!")
@@ -169,10 +161,10 @@ object Utils {
    * @param fs The Filesystem that contains the history dir
    * @return An Array of FileStatus
    */
-  private def getOffsetsFiles(fs: FileSystem) : Option[Array[FileStatus]] = {
+  private def getRemoteOffsetsFiles(fs: FileSystem) : Option[Array[FileStatus]] = {
     fs.listStatus(new Path(C2KJobConfig.camusHistoryDir)).last match {
       case null => None
-      case dir => Some(fs.listStatus(dir.getPath, new GlobFilter("offsets-m-*")))
+      case dir => Some(fs.listStatus(dir.getPath, C2KJobConfig.offsetsFilter))
     }
   }
 
@@ -189,7 +181,7 @@ object Utils {
     offsetPathAlreadyExists(offsetsPath, zk) match {
       case true => println("The Consumer Group / Topic combination already has offsets in ZK. Aborting")
       case false => etlkeys.foreach( key => {
-        zk.setData(offsetsPath+"/"+key.getNodeId+"-"+key.getPartition, key.getOffset.toString.getBytes, -1)
+        //zk.setData(offsetsPath+"/"+key.getNodeId+"-"+key.getPartition, key.getOffset.toString.getBytes, -1)
         println(offsetsPath+"\t"+key.getOffset)
       })
 
@@ -203,8 +195,8 @@ object Utils {
 
   /**
    * Check if the offset path already exists in ZK
-   * @param path
-   * @param zk
+   * @param path The path to check
+   * @param zk the ZK connection to use
    * @return true if the path already exists, false otherwise
    */
   private def offsetPathAlreadyExists(path: String, zk: ZooKeeper) : Boolean = try {
@@ -241,6 +233,44 @@ object Utils {
         None
       }
     }
+  }
+
+  /**
+   * Copy the offsets files locally and return them.
+   * @return the local offsets files
+   */
+  private def getOffsetsFiles = {
+    val hdfs = FileSystem.get(C2KJobConfig.config)
+    val localFs = FileSystem.getLocal(C2KJobConfig.config)
+
+    val localTmpDir = new Path(C2KJobConfig.localTmpDir)
+
+    // The actual copy procedure
+    def doCopy() = {
+      println("Copying offsets files to the local temp dir...")
+      getRemoteOffsetsFiles(hdfs) match {
+        case None => println("No offset files found.")
+        case Some(files) => files.foreach(file => {
+          hdfs.copyToLocalFile(file.getPath, localTmpDir)
+        })
+      }
+      println("Copy done!")
+    }
+
+    // Only copy the files if the target dir doesn't exist or is empty
+    localFs.exists(localTmpDir) match {
+      case true => localFs.listStatus(localTmpDir, C2KJobConfig.offsetsFilter).isEmpty match {
+        case false => println("Local temp dir not empty, working with the existing files")
+        case true => doCopy()
+      }
+      case false => {
+        localFs.mkdirs(localTmpDir)
+        doCopy()
+      }
+    }
+
+    // Return the local files for further processing
+    localFs.listStatus(localTmpDir)
   }
 
   /**

@@ -3,7 +3,7 @@ package com.mate1.camus2kafka
 import org.apache.avro.Schema
 import org.apache.hadoop.conf.Configuration
 import scala.annotation.tailrec
-import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
+import org.apache.hadoop.fs.{GlobFilter, FSDataInputStream, FileSystem, Path}
 import scala.io.Source
 import scala.collection.JavaConverters._
 import org.apache.hadoop.io.LongWritable
@@ -37,6 +37,8 @@ object C2KJobConfig {
   val REDUCER_CLASS = PREFIX+"reducer.class"
   val MAPPER_CLASS = PREFIX+"mapper.class"
   val MAPPER_OUTKEY_CLASS = PREFIX+"mapper.outkey.class"
+  val SET_ZK_OFFSETS_ONLY = PREFIX+"set.zk.offsets.only"
+  val LOCAL_TMP_DIR = PREFIX+"local.tmp.dir"
   val PRINTCONF = PREFIX+"printconf"
 
   // Map of required parameters with their description
@@ -78,6 +80,15 @@ object C2KJobConfig {
 
   // The zookeeper hosts
   lazy val zkHosts = config.get(ZK_HOSTS)
+
+  // Skip the mapreduce job and only set the ZK offsets
+  lazy val setZKOffsetsOnly = config.getBoolean(SET_ZK_OFFSETS_ONLY, false)
+
+  // The temp dir where the offsets files are copied before processing
+  lazy val localTmpDir = config.get(LOCAL_TMP_DIR, "./offsets_files")
+
+  // File filter for the offset files
+  val offsetsFilter = new GlobFilter("offsets-m-*")
 
 
 
