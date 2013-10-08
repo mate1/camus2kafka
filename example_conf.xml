@@ -1,39 +1,54 @@
 <!-- Example configuration file for a Camus2Kafka Job -->
 
 <configuration>
+
+	<!-- ******************* -->
 	<!-- Required parameters -->
+	<!-- ******************* -->
+
+
+	<!-- The HDFS path of the avro schema to be use 
+	     to encode the Kafka messages. -->
 	<property>
-		<!-- The HDFS path of the avro schema to be used 
-		     to encode the Kafka messages. -->
 		<name>c2k.avro.output.schema.path</name>
 		<value>/example/avro_schema.avsc</value>
 	</property>
+
+
+	<!-- The Kafka topic you want to process. -->
 	<property>
-		<!-- The Kafka topic you want to process. -->
 		<name>c2k.kafka.topic</name>
 		<value>EXAMPLE_KAFKA_TOPIC</value>
 	</property>
+	
+	
+	<!-- The (high-level) Kafka consumer group whose ZK 
+	offsets will be set by Camus2Kafka so that the 
+	regular Kafka topic can be stitched back at the 
+	correct cut off point after re-consuming all of 
+	the replay topic. -->
 	<property>
-		<!-- The (high-level) Kafka consumer group whose ZK 
-		     	offsets will be set by Camus2Kafka so that the 
-			regular Kafka topic can be stitched back at the 
-			correct cut off point after re-consuming all of 
-			the replay topic. -->
 		<name>c2k.kafka.consumer.group</name>
 		<value>EXAMPLE_CONSUMER_GROUP</value>
 	</property>
+	
+	
+	<!-- The zookeeper hosts Camus2Kafka will connect to. -->
 	<property>
-		<!-- The zookeeper hosts Camus2Kafka will connect to. -->
 		<name>c2k.zk.hosts</name>
 		<value>zkhost1:2181,zkhost2:2181</value>
 	</property>
+	
+	
+	<!-- The camus destination directory. -->
 	<property>
-		<!-- The camus destination directory. -->
 		<name>c2k.camus.dest.dir</name>
 		<value>/camus/destination</value>
 	</property>
+	
+	
+	<!-- The camus execution directory. -->
 	<property>
-		<!-- The camus execution directory. -->
 		<name>c2k.camus.exec.dir</name>
 		<value>/camus/execution</value>
 	</property>
@@ -41,47 +56,63 @@
 
 
 
-
-
+	<!-- *************************************** -->
 	<!-- Optional parameters with default values -->
+	<!-- *************************************** -->
+
+
+	<!-- Default: c2k.camus.dest.dir + "/" + c2k.kafka.topic -->
 	<property>
-		<!-- Default: c2k.camus.dest.dir + "/" + c2k.kafka.topic -->
 		<name>c2k.hdfs.input.dir</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- Default: c2k.kafka.topic + "_REPLAY" -->
 	<property>
-		<!-- Default: c2k.kafka.topic + "_REPLAY" -->
 		<name>c2k.kafka.replay.topic</name>
 		<value></value>
 	</property>
+	
+
+	<!-- Default: c2k.camus.exec.dir + "/base/history" -->
 	<property>
-		<!-- Default: c2k.camus.exec.dir + "/base/history" -->
 		<name>c2k.camus.history.dir</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- Default: Camus2KafkaMapperByTime -->
 	<property>
-		<!-- Default: Camus2KafkaMapperByTime -->
 		<name>c2k.mapper.class</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- Default: Camus2KafkaReducerByTime -->
 	<property>
-		<!-- Default: Camus2KafkaReducerByTime -->
 		<name>c2k.reducer.class</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- The mapper out Key type. Default: LongWritable -->
 	<property>
-		<!-- Default: LongWritable -->
 		<name>c2k.mapper.outkey.class</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- Skip the MapReduce task. Default: false -->
 	<property>
-		<!-- Default: false -->
 		<name>c2k.set.zk.offsets.only</name>
 		<value></value>
 	</property>
+	
+	
+	<!-- Default: unset. Possible values: custom, ALL
+	     custom: show only the c2k. hadoop params. ALL: show all params -->
 	<property>
-		<!-- Default: unset. Possible values: custom, ALL
-		     custom: show only the c2k. hadoop params. ALL: show all params -->
 		<name>c2k.printconf</name>
 		<value></value>
 	</property>
