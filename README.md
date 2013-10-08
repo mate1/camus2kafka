@@ -10,7 +10,7 @@ Assuming you already have SBT installed:
 
     $ git clone git://github.com/mate1/camus2kafka.git
     $ cd camus2kafka
-    $ sbt assembly
+    $ ./sbt assembly
 
 The 'fat jar' is now available as:
 
