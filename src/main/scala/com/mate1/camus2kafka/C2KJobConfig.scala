@@ -24,7 +24,6 @@ object C2KJobConfig {
   // String values for the config parameters we use
   val PREFIX = "c2k."
   val HDFS_INPUT_DIR = PREFIX+"hdfs.input.dir"
-  val AVRO_OUTPUT_SCHEMA = PREFIX+"avro.output.schema"
   val AVRO_OUTPUT_SCHEMA_PATH = PREFIX+"avro.output.schema.path"
   val KAFKA_REPLAY_TOPIC = PREFIX+"kafka.replay.topic"
   val KAFKA_TOPIC = PREFIX+"kafka.topic"
@@ -89,6 +88,12 @@ object C2KJobConfig {
 
   // File filter for the offset files
   val offsetsFilter = new GlobFilter("offsets-m-*")
+
+  // The Zookeeper consumer path
+  lazy val zkConsumerPath = "/consumers/%s".format(consumerGroup)
+
+  // The Zookeeper offsets path
+  lazy val zkOffsetsPath = zkConsumerPath + "/offsets/%s".format(sourceTopic)
 
 
 

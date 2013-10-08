@@ -10,13 +10,14 @@ import org.apache.hadoop.io.SequenceFile
 import org.apache.hadoop.io.SequenceFile.Reader
 import org.apache.hadoop.fs._
 import com.linkedin.camus.etl.kafka.common.EtlKey
-import org.apache.zookeeper.{WatchedEvent, Watcher, ZooKeeper}
+import org.apache.zookeeper.{CreateMode, WatchedEvent, Watcher, ZooKeeper}
 import org.apache.zookeeper.Watcher.Event
 import akka.actor.ActorSystem
 import akka.agent.Agent
-import org.apache.zookeeper.KeeperException.NoNodeException
+import org.apache.zookeeper.KeeperException.{NodeExistsException}
 import scala.collection.mutable
 import scala.Some
+import org.apache.zookeeper.data.Stat
 
 /**
  * Created with IntelliJ IDEA.
@@ -176,35 +177,43 @@ object Utils {
    * @param zk The Zookeeper connection used to write the information
    */
   private def writeOffsetsInZK(etlkeys : Seq[EtlKey], zk: ZooKeeper) = try {
-    val offsetsPath = "/consumers/%s/offsets/%s".format(C2KJobConfig.consumerGroup, C2KJobConfig.sourceTopic)
 
-    offsetPathAlreadyExists(offsetsPath, zk) match {
-      case true => println("The Consumer Group / Topic combination already has offsets in ZK. Aborting")
-      case false => etlkeys.foreach( key => {
-        //zk.setData(offsetsPath+"/"+key.getNodeId+"-"+key.getPartition, key.getOffset.toString.getBytes, -1)
-        println(offsetsPath+"\t"+key.getOffset)
-      })
+    // Get the current ACLs for /consumers and reuse them
+    val acls = zk.getACL("/consumers", new Stat())
 
-    }
+    zk.create(C2KJobConfig.zkConsumerPath, null, acls, CreateMode.PERSISTENT)
+    zk.create(C2KJobConfig.zkConsumerPath + "/offsets", null, acls, CreateMode.PERSISTENT)
+    zk.create(C2KJobConfig.zkOffsetsPath, null, acls, CreateMode.PERSISTENT)
+
+    etlkeys.foreach( key => {
+      val fullPath = C2KJobConfig.zkOffsetsPath+"/"+key.getNodeId+"-"+key.getPartition
+
+      zk.create(fullPath, null, acls, CreateMode.PERSISTENT)
+      zk.setData(fullPath, key.getOffset.toString.getBytes, -1)
+      println(fullPath + " : "+key.getOffset)
+    })
+
   } catch {
-    case e: Exception => {
-      println("Trying to recover")
-      throw e
+    case e: NodeExistsException => {
+      println("Could not write the offsets to ZK. Node already exists: "+e.getLocalizedMessage)
     }
+    case e : Exception => throw e
   }
 
+/*
   /**
    * Check if the offset path already exists in ZK
    * @param path The path to check
    * @param zk the ZK connection to use
    * @return true if the path already exists, false otherwise
    */
-  private def offsetPathAlreadyExists(path: String, zk: ZooKeeper) : Boolean = try {
+  private def offsetsPathAlreadyExists(path: String, zk: ZooKeeper) : Boolean = try {
     zk.getData(path, false, null)
     true
   } catch {
     case e: NoNodeException => false
   }
+*/
 
   /**
    * Return a zookeeper connection

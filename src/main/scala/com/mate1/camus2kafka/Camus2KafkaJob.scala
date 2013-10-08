@@ -44,6 +44,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
       job.setReduceSpeculativeExecution(false)
 
+      // Do we want to skip the MapReduce task and only set the Zookeeper Offsets?
       if (C2KJobConfig.setZKOffsetsOnly){
         Utils.setCamusOffsetsInZK
         0
