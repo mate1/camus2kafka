@@ -83,6 +83,6 @@
 		<!-- Default: unset. Possible values: custom, ALL
 		     custom: show only the c2k. hadoop params. ALL: show all params -->
 		<name>c2k.printconf</name>
-		<value>custom</value>
+		<value></value>
 	</property>
 </configuration>
