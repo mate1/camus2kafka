@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2013 Mate1 Inc. All rights reserved.
- * Copyright (c) 2012 SnowPlow Analytics Ltd. All rights reserved.
- *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
  * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
@@ -21,7 +18,7 @@ object BuildSettings {
     organization  := "Mate1 Inc.",
     version       := "0.0.1",
     description   := "Moves data stored in Hadoop through Camus into Kafka.",
-    scalaVersion  := "2.9.2", // -> 2.10.0 when Scalding is ready
+    scalaVersion  := "2.9.2",
     scalacOptions := Seq("-deprecation", "-encoding", "utf8"),
     resolvers     ++= Dependencies.resolutionRepos
   )

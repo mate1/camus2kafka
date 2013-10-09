@@ -1,7 +1,4 @@
 /* 
- * Copyright (c) 2013 Mate1 Inc. All rights reserved.
- * Copyright (c) 2012 SnowPlow Analytics Ltd. All rights reserved.
- *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
  * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
@@ -31,14 +28,14 @@ object Camus2KafkaProjectBuild extends Build {
       libraryDependencies ++= Seq(
         Libraries.hadoopCore,
         Libraries.hadoopHdfs,
-        Libraries.specs2,
         Libraries.kafkaCore,
         Libraries.camusEtlKafka,
         Libraries.camusApi,
         Libraries.avro,
         Libraries.avroMapRed,
         Libraries.akkaActor,
-        Libraries.akkaAgent
+        Libraries.akkaAgent,
+        Libraries.zookeeper
       )
     )
   .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)
