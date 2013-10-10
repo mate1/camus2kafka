@@ -59,7 +59,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig {
 
       // Do we want to skip the MapReduce task and only set the Zookeeper Offsets?
       if (C2KJobConfig.setZKOffsetsOnly){
-        kafkaUtils.setCamusOffsetsInZK
+        kafkaUtils.setCamusOffsetsInZK()
         0
       } else {
 
@@ -77,15 +77,15 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig {
     }
   }
 
-  def successCallback {
+  def successCallback() {
 
-    kafkaUtils.setCamusOffsetsInZK match {
+    kafkaUtils.setCamusOffsetsInZK() match {
       case true => println("Yay, for real!")
       case false => println("Error in successCallback: Could not set the offsets in ZK")
     }
   }
 
-  def errorCallback {
+  def errorCallback() {
     println("Booo!")
   }
 }

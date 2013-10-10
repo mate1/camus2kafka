@@ -18,7 +18,7 @@ import org.apache.hadoop.fs.{GlobFilter, FSDataInputStream, FileSystem, Path}
 import scala.io.Source
 import scala.collection.JavaConverters._
 import org.apache.hadoop.io.LongWritable
-import com.mate1.camus2kafka.mapper.Camus2KafkaMapperByTime
+import com.mate1.camus2kafka.mapper.TimeBasedC2KMapper
 import com.mate1.camus2kafka.reducer.JsonC2KReducer
 
 /**
@@ -134,7 +134,7 @@ object C2KJobConfig {
   
   // The mapper class (Default is Camus2KafkaMapperByTime)
   lazy val mapperClass  = config.get(MAPPER_CLASS) match {
-    case null => classOf[Camus2KafkaMapperByTime].asInstanceOf[Class[AbstractC2KMapper[_]]]
+    case null => classOf[TimeBasedC2KMapper].asInstanceOf[Class[AbstractC2KMapper[_]]]
     case className => Class.forName(className).asInstanceOf[Class[AbstractC2KMapper[_]]]
   }
 

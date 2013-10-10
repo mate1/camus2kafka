@@ -11,7 +11,7 @@ import org.apache.avro.generic.GenericRecord
  * Date: 10/10/13
  * Time: 9:34 AM
  */
-class Camus2KafkaMapperByTime
+class TimeBasedC2KMapper
   extends AbstractC2KMapper[LongWritable] {
   val longWritableKey = new LongWritable()
 
