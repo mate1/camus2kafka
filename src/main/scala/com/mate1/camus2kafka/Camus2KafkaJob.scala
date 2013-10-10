@@ -15,13 +15,13 @@ import org.apache.hadoop.util.Tool
 import org.apache.hadoop.conf.Configured
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat
 import scala.Predef._
-import org.apache.avro.mapred._
 import org.apache.avro.generic.GenericRecord
-import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable}
+import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.apache.avro.mapreduce.AvroKeyInputFormat
+import com.mate1.camus2kafka.utils.KafkaUtils
 
 /**
  * Created with IntelliJ IDEA.
@@ -30,7 +30,9 @@ import org.apache.avro.mapreduce.AvroKeyInputFormat
  * Time: 12:15 PM
  */
 
-class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
+class Camus2KafkaJob extends Configured with Tool with C2KJobConfig {
+
+  val kafkaUtils = KafkaUtils()
 
   def run(args: Array[String]): Int = {
     val conf = getConf
@@ -57,7 +59,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
       // Do we want to skip the MapReduce task and only set the Zookeeper Offsets?
       if (C2KJobConfig.setZKOffsetsOnly){
-        Utils.setCamusOffsetsInZK
+        kafkaUtils.setCamusOffsetsInZK
         0
       } else {
 
@@ -77,7 +79,7 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
 
   def successCallback {
 
-    Utils.setCamusOffsetsInZK match {
+    kafkaUtils.setCamusOffsetsInZK match {
       case true => println("Yay, for real!")
       case false => println("Error in successCallback: Could not set the offsets in ZK")
     }
@@ -86,19 +88,4 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig{
   def errorCallback {
     println("Booo!")
   }
-}
-
-class Camus2KafkaMapperByTime
-  extends AbstractC2KMapper[LongWritable] {
-  val longWritableKey = new LongWritable()
-
-  def getOutputKey(key: AvroKey[GenericRecord], value: NullWritable): LongWritable = {
-    longWritableKey.set(key.datum().get("time").asInstanceOf[Long])
-    longWritableKey
-  }
-}
-
-class Camus2KafkaReducerByTime
-  extends AbstractC2KReducer[LongWritable] {
-  def processBeforePublish(msg: Array[Byte])  = Utils.fromBinaryToJsonEncoded(msg)
 }

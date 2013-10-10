@@ -15,6 +15,7 @@ import org.apache.hadoop.mapreduce.Reducer
 import org.apache.hadoop.io.{Writable, NullWritable, BytesWritable}
 import java.lang.Iterable
 import scala.collection.JavaConverters._
+import com.mate1.camus2kafka.utils.KafkaUtils
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,6 +27,8 @@ import scala.collection.JavaConverters._
 abstract class AbstractC2KReducer[INKEY <: Writable]
   extends Reducer[INKEY, BytesWritable, NullWritable, NullWritable]
   with C2KJobConfig{
+
+  val kafkaUtils = KafkaUtils()
 
   type ReducerContext = Reducer[INKEY, BytesWritable, NullWritable, NullWritable]#Context
 
@@ -39,8 +42,7 @@ abstract class AbstractC2KReducer[INKEY <: Writable]
   }
 
   def publish(msg: Array[Byte]) = {
-    val processedMsg = processBeforePublish(msg)
-    Utils.publishToKafka(processedMsg)
+    kafkaUtils.publishToKafka(processBeforePublish(msg))
   }
 
   /**
