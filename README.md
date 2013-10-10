@@ -6,7 +6,7 @@ This tool lets you take Kafka topics that were previously persisted in Hadoop th
 
 ### Background
 
-At Mate1, we have Kafka consumers that process "raw" Kafka topics coming out of various types of servers, either to push them into databases, or into "enriched" versions of the same topics (with added metadata, for example). In some cases, we make updates to our Kafka consumers that warrant re-processing all of our raw legacy data (because we are infering new types of metadata from the raw data, for example).
+At Mate1, we have Kafka consumers that process "raw" Kafka topics coming out of various types of servers, either to push them into databases, or into "enriched" versions of the same topics (with added metadata, for example). In some cases, we make updates to our Kafka consumers that warrant re-processing all of our legacy raw data (because we are infering new types of metadata from the raw data, for example).
 
 We do not want to keep the data for all our topics inside Kafka forever (we instead use Camus and Hadoop for that), but we are willing to re-publish a single complete topic back into Kafka if need be. This topic can be re-published into a replay version of the original topic for the sole purpose of being re-consumed. If disk footprint was a concern, we could even set an aggressively low retention time on the replay topic so that it gets cleaned up by Kafka before the whole topic is done re-publishing, but that has not been a concern for us so far.
 
@@ -26,9 +26,9 @@ The shuffling phase takes care of sorting the data by the provided key and feeds
 
 Finally, the reducer task ingests data, and simply republishes it into Kafka in a replay topic (which, by default, is the original topic's name with "_REPLAY" appended to it).
 
-After the MR job is finished, camus2kafka will look in Camus' execution directory on HDFS for the offset files of the latest Camus run, and copy those files locally. It will then decode the contents of each offset file so that it can find the Kafka offsets that correspond to correct cut-off point in the original Kafka topic. Finally, it will commit those offsets into Zookeeper for the consumer group name that was passed in parameter (but only if that ZK path is currently non-existent, so it will not overwrite existing consumer groups' offsets).
+After the MR job is finished, camus2kafka will look in Camus' execution directory on HDFS for the offset files of the latest Camus run, and copy those files locally. It will then decode the contents of each offset file so that it can find the Kafka offsets that correspond to the correct cut-off point in the original Kafka topic. Finally, it will commit those offsets into Zookeeper for the consumer group name that was passed in parameter (but only if that ZK path is currently non-existent, so it will not overwrite existing consumer groups' offsets).
 
-After camus2kafka is done running, you can spawn one or many high-level Kafka consumers to pull and process the replay topic written by camus2kafka. Once those consumers are done consuming the replay topic, they can be switched off and reconfigured to pull from the original topic name using the consumer group that was provided to camus2kafka. This last step will ensure that the consumers resume consuming the original topic at the exact offsets that the last Camus run stopped at.
+After camus2kafka is done running, you can spawn one or many high-level Kafka consumers to pull and process the replay topic written by camus2kafka. Once those consumers are done consuming the replay topic, they can be switched off and reconfigured to pull from the original topic name using the consumer group that was provided to camus2kafka. This last step ensures that the consumers resume pulling from the original topic at the exact offsets that the last Camus run stopped at.
 
 ## Building
 
