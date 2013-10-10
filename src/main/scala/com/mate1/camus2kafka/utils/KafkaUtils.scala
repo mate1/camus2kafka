@@ -44,7 +44,7 @@ object KafkaUtils {
     /**
      * Creates a Kafka producer
      */
-    private def createKafkaProducer : Option[Producer[String, Message]] = {
+    private lazy val kafkaProducer : Option[Producer[String, Message]] = {
 
       val producer = try {
 
@@ -82,7 +82,7 @@ object KafkaUtils {
 
       try {
 
-        createKafkaProducer match {
+        kafkaProducer match {
           case None => println("Failed to publish")
           case producer => {
             producer.get.send(new ProducerData(topic, new Message(msg)))
