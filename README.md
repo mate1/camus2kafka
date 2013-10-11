@@ -18,6 +18,8 @@ We are open-sourcing camus2kafka for other people who may have similar needs. It
 
 At a high-level, camus2kafka is an sbt project that spawns a Map Reduce job, and then performs some extra operations once the MR job is finished.
 
+#### Map Reduce job
+
 The MR job has a few purposes: reading data from HDFS, sorting it and republishing it into Kafka with a specified avro schema.
 
 The mapper tasks read an HDFS directory containing a topic persisted using Camus. They then decode the AvroSequenceFiles using the schema that is embedded in their header, and look for a time field within the extracted GenericRecords. The mappers then emit key/value pairs where the key is the extracted time field, and the value is a BytesWritable representing the GenericRecord re-serialized using the specified avro schema (so that schema evolution does not need to be taken into account on a per-record level by the reducer).
@@ -26,7 +28,11 @@ The shuffling phase takes care of sorting the data by the provided key and feeds
 
 Finally, the reducer task ingests data, and simply republishes it into Kafka in a replay topic (which, by default, is the original topic's name with "_REPLAY" appended to it).
 
+#### Post-MR processing
+
 After the MR job is finished, camus2kafka will look in Camus' execution directory on HDFS for the offset files of the latest Camus run, and copy those files locally. It will then decode the contents of each offset file so that it can find the Kafka offsets that correspond to the correct cut-off point in the original Kafka topic. Finally, it will commit those offsets into Zookeeper for the consumer group name that was passed in parameter (but only if that ZK path is currently non-existent, so it will not overwrite existing consumer groups' offsets).
+
+#### How to use the output of camus2kafka
 
 After camus2kafka is done running, you can spawn one or many high-level Kafka consumers to pull and process the replay topic written by camus2kafka. Once those consumers are done consuming the replay topic, they can be switched off and reconfigured to pull from the original topic name using the consumer group that was provided to camus2kafka. This last step ensures that the consumers resume pulling from the original topic at the exact offsets that the last Camus run stopped at.
 
