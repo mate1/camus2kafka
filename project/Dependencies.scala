@@ -12,8 +12,9 @@ import sbt._
 
 object Dependencies {
   val resolutionRepos = Seq(
-    "Mate1 Public Maven Repo" at "https://github.com/mate1/maven/tree/master/public/", // For Kafka, Camus
-    "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/" // For Hadoop, ZK...
+    "Mate1 Public Maven Repo" at "https://raw.github.com/mate1/maven/master/public/", // For Kafka, Camus
+    "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/", // For Hadoop, ZK...
+    "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/" // For Akka...
   )
 
   object V {
