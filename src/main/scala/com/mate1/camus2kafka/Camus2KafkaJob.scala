@@ -47,7 +47,6 @@ class Camus2KafkaJob extends Configured with Tool with C2KJobConfig {
       job.setReducerClass(C2KJobConfig.reducerClass)
       job.setMapOutputKeyClass(C2KJobConfig.mapperOutKeyClass)
 
-
       // Static settings
       job.setInputFormatClass(classOf[AvroKeyInputFormat[GenericRecord]])
       job.setMapOutputValueClass(classOf[BytesWritable])

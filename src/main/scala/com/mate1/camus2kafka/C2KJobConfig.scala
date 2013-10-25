@@ -116,7 +116,7 @@ object C2KJobConfig {
 
   // The HDFS input path that contains the avro data
   lazy val hdfsInputDir = config.get(HDFS_INPUT_DIR) match {
-    case null => camusDestDir + "/" + sourceTopic
+    case null => camusDestDir + "/" + sourceTopic + "/hourly/*/*/*/*"
     case path => path
   }
 

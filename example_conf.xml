@@ -54,14 +54,12 @@
 	</property>
 
 
-
-
 	<!-- *************************************** -->
 	<!-- Optional parameters with default values -->
 	<!-- *************************************** -->
 
 
-	<!-- Default: c2k.camus.dest.dir + "/" + c2k.kafka.topic -->
+	<!-- Default: c2k.camus.dest.dir + "/" + c2k.kafka.topic + "/hourly/*/*/*/*" -->
 	<property>
 		<name>c2k.hdfs.input.dir</name>
 		<value></value>
@@ -116,4 +114,16 @@
 		<name>c2k.printconf</name>
 		<value></value>
 	</property>
+
+
+	<!-- ***************** -->
+	<!-- Hadoop parameters -->
+	<!-- ***************** -->
+
+
+	<property>
+		<name>mapred.job.reuse.jvm.num.tasks</name>
+ 		<value>100</value>
+	</property>
+
 </configuration>
