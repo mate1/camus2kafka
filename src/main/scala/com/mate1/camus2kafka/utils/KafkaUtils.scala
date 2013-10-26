@@ -1,6 +1,7 @@
 package com.mate1.camus2kafka.utils
 
 import com.mate1.camus2kafka.C2KJobConfig
+import scala.annotation.tailrec
 
 /**
  * Created with IntelliJ IDEA.
@@ -35,18 +36,20 @@ object KafkaUtils {
     import org.apache.zookeeper.Watcher.Event
     import akka.actor.ActorSystem
     import akka.agent.Agent
+    import akka.util.Duration
+    import akka.util.duration._
     import org.apache.zookeeper.KeeperException.NodeExistsException
     import scala.collection.mutable
     import scala.Some
     import org.apache.zookeeper.data.Stat
 
+    val waitTimeBetweenRetries: Duration = 1 second
 
     /**
      * Creates a Kafka producer
      */
-    private lazy val kafkaProducer : Option[Producer[String, Message]] = {
-
-      val producer = try {
+    private lazy val kafkaProducer : Producer[String, Message] = {
+      try {
 
         val zkHosts = C2KJobConfig.zkHosts
 
@@ -55,50 +58,50 @@ object KafkaUtils {
 
         producerProps.put("zk.connect", zkHosts)
         producerProps.put("producer.type", "async")
-        producerProps.put("batch.size", "100")
+        producerProps.put("batch.size", "1000")
         producerProps.put("queue.time", "1000")
+
+        // This is so that messages aren't dropped and that the publish call blocks synchronously
+        // if we publish at a higher rate than the Kafka producer can flush to the broker...
+        producerProps.put("queue.enqueueTimeout.ms", "-1")
 
         val producerConfig = new ProducerConfig(producerProps)
 
-        Some(new Producer[String, Message](producerConfig))
+        new Producer[String, Message](producerConfig)
 
       } catch {
         case e: Exception => {
-          println("Could not create kafka producer")
-          None
+          println("Could not create kafka producer!")
+          throw e
         }
       }
-      producer
     }
-
 
     /**
      * Publish a message to the replay topic
      *
      * @param msg The message to publish
      */
-    def publishToKafka(msg: Array[Byte]) = {
+    @tailrec
+    final def publishToKafka(msg: Array[Byte]) = {
       val topic = C2KJobConfig.replayTopic
 
-      try {
-
-        kafkaProducer match {
-          case None => println("Failed to publish")
-          case producer => {
-            producer.get.send(new ProducerData(topic, new Message(msg)))
-            println("Publishing ok")
-          }
-        }
-
+      val success: Boolean = try {
+        kafkaProducer.send(new ProducerData(topic, new Message(msg)))
+        //println("Publishing ok")
+        true
       } catch {
         case e: Exception => {
-          // happens when trying to publish and kafka suddenly switched off,
-          // but not when zookeeper is off. When zookeeper comes back on,
-          // all the publishes were queued will all fire
-          println("Unable to publish an avro message from producer for topic: " + topic)
+          println("Unable to publish an avro message for topic: " + topic +
+            " (will try again in " + waitTimeBetweenRetries.toSeconds + " seconds)")
           e.printStackTrace()
-
+          false
         }
+      }
+
+      if (!success) {
+        waitTimeBetweenRetries.sleep()
+        publishToKafka(msg)
       }
     }
 
