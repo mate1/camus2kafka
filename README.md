@@ -50,7 +50,7 @@ The 'fat jar' is now available as:
 
 ## Running
 
-    $ hadoop jar target/camus2kafka-project-0.0.1.jar	
+    $ hadoop jar target/camus2kafka-project-0.0.1.jar -conf config_file.xml
 
 ## Configuration
 
