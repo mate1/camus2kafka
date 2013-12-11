@@ -80,14 +80,14 @@
 	</property>
 	
 	
-	<!-- Default: Camus2KafkaMapperByTime -->
+	<!-- Default: TimeBasedC2KMapper -->
 	<property>
 		<name>c2k.mapper.class</name>
 		<value></value>
 	</property>
 	
 	
-	<!-- Default: Camus2KafkaReducerByTime -->
+	<!-- Default: JsonC2KReducer -->
 	<property>
 		<name>c2k.reducer.class</name>
 		<value></value>
