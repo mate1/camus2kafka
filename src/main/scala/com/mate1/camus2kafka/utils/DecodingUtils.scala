@@ -26,7 +26,6 @@ object DecodingUtils {
     import org.apache.avro.generic.{GenericDatumWriter, GenericData, GenericRecord, GenericDatumReader}
     import java.io.ByteArrayOutputStream
 
-
     private lazy val datumReader : GenericDatumReader[GenericRecord] = new GenericDatumReader(C2KJobConfig.outputSchema)
     private lazy val record : GenericData.Record = new GenericData.Record(C2KJobConfig.outputSchema)
     private lazy val decoderFactory : DecoderFactory = DecoderFactory.get()
@@ -42,17 +41,24 @@ object DecodingUtils {
      * @return Array of bytes from a Json encoded message
      */
     def fromBinaryToJsonEncoded(msg: Array[Byte]) : Array[Byte] = {
+      try {
+        // Decode to a record
+        datumReader.read(record, decoderFactory.binaryDecoder(msg, reuseDecoder))
 
-      // Decode to a record
-      datumReader.read(record, decoderFactory.binaryDecoder(msg, reuseDecoder))
+        // Re-encode in JsonEncoded
+        out.reset()
+        writer.write(record, encoder)
+        encoder.flush()
 
-      // Re-encode in JsonEncoded
-      out.reset()
-      writer.write(record, encoder)
-      encoder.flush()
-
-      // Return the re-encoded data
-      out.toByteArray
+        // Return the re-encoded data
+        out.toByteArray
+      } catch {
+        case e: Exception => {
+          println("Got an exception in fromBinaryToJsonEncoded for the following byte array!" +
+            "\n\nArray(" + msg.mkString(", ") + ")\n")
+          throw e
+        }
+      }
     }
   }
 }
