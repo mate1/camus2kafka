@@ -78,7 +78,7 @@ abstract class AbstractC2KMapper[OUTKEY <: Writable]
 
     val bytesArray = out.toByteArray
 
-    bytesWritableValue.set(bytesArray, 0 , bytesArray.length-1)
+    bytesWritableValue.set(bytesArray, 0 , bytesArray.length)
     bytesWritableValue
   }
 
