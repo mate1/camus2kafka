@@ -19,8 +19,8 @@ object Dependencies {
 
   object V {
     // Versions
-    val hadoop        = "2.0.0-mr1-cdh4.2.0"
-    val hadoopHdfs    = "2.0.0-cdh4.2.0"
+    val hadoop        = "2.0.0-mr1-cdh4.5.0"
+    val hadoopHdfs    = "2.0.0-cdh4.5.0"
     val kafka         = "0.7.2-scala2.9.2"
     val camus         = "0.1.0-kafka0.7.2-scala2.9.2-SNAPSHOT"
     val avro          = "1.7.3"
