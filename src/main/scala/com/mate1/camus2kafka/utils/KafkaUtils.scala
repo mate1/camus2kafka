@@ -166,12 +166,17 @@ object KafkaUtils {
      * @param zk The Zookeeper connection used to write the information
      */
     private def writeOffsetsInZK(etlkeys : Seq[EtlKey], zk: ZooKeeper) = try {
-
       // Get the current ACLs for /consumers and reuse them
       val acls = zk.getACL("/consumers", new Stat())
 
-      zk.create(C2KJobConfig.zkConsumerPath, null, acls, CreateMode.PERSISTENT)
-      zk.create(C2KJobConfig.zkConsumerPath + "/offsets", null, acls, CreateMode.PERSISTENT)
+      if (zk.exists(C2KJobConfig.zkConsumerPath, false) == null) {
+        zk.create(C2KJobConfig.zkConsumerPath, null, acls, CreateMode.PERSISTENT)
+      }
+
+      if (zk.exists(C2KJobConfig.zkConsumerPath + "/offsets", false) == null) {
+        zk.create(C2KJobConfig.zkConsumerPath + "/offsets", null, acls, CreateMode.PERSISTENT)
+      }
+
       zk.create(C2KJobConfig.zkOffsetsPath, null, acls, CreateMode.PERSISTENT)
 
       etlkeys.foreach( key => {
